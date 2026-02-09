@@ -55,6 +55,14 @@ class Laberinto(ElementoMapa):
 class Juego:
     def __init__(self, laberinto):
         self.laberinto = laberinto
+    def fabricarLab2Hab(self):
+        habitacion1 = Habitacion()
+        habitacion2 = Habitacion()
+        puerta = Puerta(habitacion1, habitacion2, abierta=True)
+        habitacion1.setEste(puerta)
+        habitacion2.setOeste(puerta)
+        self.laberinto.agregarHabitacion(habitacion1)
+        self.laberinto.agregarHabitacion(habitacion2)
 
 class Decorator(ElementoMapa):
     @abstractmethod
