@@ -56,13 +56,43 @@ class Juego:
     def __init__(self, laberinto):
         self.laberinto = laberinto
     def fabricarLab2Hab(self):
-        habitacion1 = Habitacion()
-        habitacion2 = Habitacion()
-        puerta = Puerta(habitacion1, habitacion2, abierta=True)
-        habitacion1.setEste(puerta)
-        habitacion2.setOeste(puerta)
+
+        habitacion1 = self.fabricarHabitacion()
+        habitacion2 = self.fabricarHabitacion()
+        puerta = self.fabricarPuertaAbierta(habitacion1, habitacion2)
+
+        habitacion1.setSur(puerta)
+        habitacion2.setNorte(puerta)
+
+        habitacion1.setNorte(self.fabricarPared())
+        habitacion1.setEste(self.fabricarPared())
+        habitacion1.setOeste(self.fabricarPared())
+
+        habitacion2.setSur(self.fabricarPared())
+        habitacion2.setEste(self.fabricarPared())
+        habitacion2.setOeste(self.fabricarPared())
+
         self.laberinto.agregarHabitacion(habitacion1)
         self.laberinto.agregarHabitacion(habitacion2)
+    
+    def fabricarPared(self):
+        return Pared()
+    
+    def fabricarHabitacion(self):
+        return Habitacion()
+    
+    def fabricarPuertaCerrada(self, lado1, lado2):
+        return Puerta(lado1, lado2, abierta=False)
+    
+    def fabricarPuertaAbierta(self, lado1, lado2):
+        return Puerta(lado1, lado2, abierta=True)
+    
+    def fabricarLaberinto(self):
+        return Laberinto()
+
+class JuegoBombas(Juego):
+    def fabricarPared(self):
+        return Bomba(super().fabricarPared())
 
 class Decorator(ElementoMapa):
     @abstractmethod
@@ -77,3 +107,8 @@ class Bomba(Decorator):
         self.elemento.entrar()
 
 
+juego = Juego(Laberinto())
+
+juego.fabricarLab2Hab()
+
+print(juego.laberinto.habitaciones)
