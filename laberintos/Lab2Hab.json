@@ -1,0 +1,16 @@
+{"forma":"poligono4",
+ "laberinto":[{"tipo":"habitacion", "id":1,"hijos":[
+                                                {"tipo":"bomba","posicion":"Norte"},
+                                                {"tipo":"armario","posicion":"Oeste"}
+                                             ]
+               },
+             {"tipo":"habitacion", "id":2,"hijos":[]},
+             {"tipo":"habitacion", "id":3,"hijos":[]},
+             {"tipo":"habitacion", "id":4,"hijos":[]}],
+ "puertas":[
+    [1,"Sur",2,"Norte"],
+    [1,"Este",3,"Oeste"],
+    [3,"Sur",4,"Norte"],
+    [2,"Este",4,"Oeste"]
+ ]
+}

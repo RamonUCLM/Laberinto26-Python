@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+import json
 
 #
 class ElementoMapa(ABC):
@@ -30,7 +31,8 @@ class Norte(Orientacion):
     @staticmethod
     def ponerElemento(contenedor, elemento):
         if contenedor.norte:
-            print("Solo puede haber un elemento en esta orientación")
+            print(f"Sustituyendo elemento en la orientación Norte")
+            contenedor.norte = elemento
         else:
             contenedor.norte = elemento
     @staticmethod
@@ -54,7 +56,8 @@ class Sur(Orientacion):
     @staticmethod
     def ponerElemento(contenedor, elemento):
         if contenedor.sur:
-            print("Solo puede haber un elemento en esta orientación")
+            print(f"Sustituyendo elemento en la orientación Sur")
+            contenedor.sur = elemento
         else:
             contenedor.sur = elemento
     @staticmethod
@@ -78,7 +81,8 @@ class Este(Orientacion):
     @staticmethod
     def ponerElemento(contenedor, elemento):
         if contenedor.este:
-            print("Solo puede haber un elemento en esta orientación")
+            print(f"Sustituyendo elemento en la orientación Este")
+            contenedor.este = elemento
         else:
             contenedor.este = elemento
     @staticmethod
@@ -102,7 +106,8 @@ class Oeste(Orientacion):
     @staticmethod
     def ponerElemento(contenedor, elemento):
         if contenedor.oeste:
-            print("Solo puede haber un elemento en esta orientación")
+            print(f"Sustituyendo elemento en la orientación Oeste")
+            contenedor.oeste = elemento
         else:
             contenedor.oeste = elemento
     @staticmethod
@@ -139,6 +144,12 @@ class Contenedor(ElementoMapa):
         self.orientaciones["Este"].ponerElemento(self, elemento)
     def setOeste(self, elemento):
         self.orientaciones["Oeste"].ponerElemento(self, elemento)
+    def obtenerHijo(self, posicion):
+        try:
+            return self.hijos[posicion]
+        except IndexError:
+            print("La posición no existe en la lista de hijos")
+            return None
     def agregarHijo(self, posicion,elemento):
         self.hijos.insert(posicion, elemento)
     def eliminarHijo(self, posicion):
@@ -146,6 +157,23 @@ class Contenedor(ElementoMapa):
             self.hijos.pop(posicion)
         except IndexError:
             print("La posición no existe en la lista de hijos")
+    def recorrer(self, unBloque):
+        print("Recorriendo este contenedor: ", self.id)
+        unBloque(self)
+        for hijo in self.hijos:
+            hijo.recorrer(unBloque)
+
+class Armario(Contenedor):
+    def __init__(self, id):
+        super().__init__(id)
+    def entrar(self):
+        print("Has entrado al armario: ", self.id)
+        return self
+    def recorrer(self, unBloque):
+        print("Recorriendo este contenedor: ", self.id)
+        unBloque(self)
+        for hijo in self.hijos:
+            hijo.recorrer(unBloque)
 
 #Habitación es un composite también.
 class Habitacion(Contenedor):
@@ -164,7 +192,14 @@ class Habitacion(Contenedor):
             self.orientaciones[orientacion].recorrer(self, unBloque)
 
     def __str__(self):
-        return f"La habitación {self.id} contiene: \n Norte: {self.norte} \n Sur: {self.sur} \n Este: {self.este} \n Oeste: {self.oeste}"
+        cadena = f"Habitación {self.id} con las siguientes orientaciones:\n"
+        for orientacion in self.orientaciones:
+            if self.orientaciones[orientacion].getElemento(self):
+                cadena += f"En la orientación {orientacion} hay un elemento: {self.orientaciones[orientacion].getElemento(self)}\n"
+            else:
+                cadena += f"En la orientación {orientacion} no hay ningún elemento\n"
+        return cadena
+        
 
 #Hoja sigue el patrón Composite, siendo la hoja
 class Hoja(ElementoMapa):
@@ -273,6 +308,94 @@ class Perezoso(Modo):
     def dormir(self, bicho):
         print(f"{bicho.tipo} duerme mucho, recuperando vida")
         bicho.vida += 10
+
+class Director:
+    def __init__(self):
+        self.builder = None
+
+    def iniBuilder(self):
+        if self.data["forma"] == "poligono4":
+            self.builder = LaberintoBuilder()
+    def construirLaberinto(self):
+        if self.builder:
+            self.builder.fabricarLaberinto()
+            for hijo in self.data["laberinto"]:
+                self.fabricarLaberintoRecursivo(0,hijo)
+            self.builder.fabricarPuertas(self.data["puertas"])
+    
+    def construirJuego(self):
+        if self.builder:
+            self.builder.fabricarJuego()
+        else:
+            print("No se ha inicializado el builder")
+            return None
+        
+    def obtenerJuego(self):
+        if self.builder:
+            self.builder.juego
+        else:
+            print("No se ha inicializado el builder")
+            return None
+
+    def fabricarLaberintoRecursivo(self,idp,elemento):
+        if elemento["tipo"] == "habitacion":
+            self.builder.fabricarHabitacion(elemento["id"])
+            for hijos in elemento["hijos"]:
+                self.fabricarLaberintoRecursivo(elemento["id"],hijos)
+        if elemento["tipo"] == "bomba":
+            self.builder.fabricarBomba(idp, elemento["posicion"])
+        if elemento["tipo"] == "armario":
+            self.builder.fabricarArmario(idp, elemento["posicion"])
+           
+    
+    def cargarConf(self, path):
+        with open(path) as file:
+            self.data = json.load(file)
+
+#Es el concreteBuilder del patrón Builder, encargado de construir el laberinto a partir de la información dada por el director.
+class LaberintoBuilder:
+    def __init__(self):
+        self.laberinto = None
+        self.juego = None
+
+    def fabricarLaberinto(self):
+        self.laberinto = Laberinto(0)
+    
+    def fabricarJuego(self):
+        self.juego = Juego(self.laberinto)
+
+    def fabricarHabitacion(self, id):
+        habitacion = Habitacion(id)
+        self.fabricarForma(habitacion)
+        for orientacion in habitacion.orientaciones:
+            habitacion.orientaciones[orientacion].ponerElemento(habitacion, self.fabricarPared())
+        self.laberinto.agregarHijo(id, habitacion)
+
+    def fabricarForma(self, habitacion):
+        habitacion.agregarOrientacion(Norte)
+        habitacion.agregarOrientacion(Sur)
+        habitacion.agregarOrientacion(Este)
+        habitacion.agregarOrientacion(Oeste)
+    
+    def fabricarPared(self):
+        return Pared()
+    
+    def fabricarBomba(self, idp, orientacion):
+        bomba = Bomba(self.fabricarPared())
+        habitacion = self.laberinto.obetenerHabitacion(idp)
+        habitacion.orientaciones[orientacion].ponerElemento(habitacion, bomba)
+
+    def fabricarPuertas(self, puertas):
+        for puerta_info in puertas:
+            habitacion1 = self.laberinto.obetenerHabitacion(puerta_info[0])
+            habitacion2 = self.laberinto.obetenerHabitacion(puerta_info[2])
+            puerta = Puerta(habitacion1.id, habitacion2.id, abierta=True)
+            habitacion1.orientaciones[puerta_info[1]].ponerElemento(habitacion1, puerta)
+            habitacion2.orientaciones[puerta_info[3]].ponerElemento(habitacion2, puerta)
+    def fabricarArmario(self, idp, orientacion):
+        armario = Armario(0)
+        habitacion = self.laberinto.obetenerHabitacion(idp)
+        habitacion.orientaciones[orientacion].ponerElemento(habitacion, armario)
 
 #Juego sigue el patrón Factory Method, siendo el creador
 class Juego:
@@ -394,19 +517,11 @@ class Bomba(Decorator):
         return self.elemento.__str__() + " con una bomba"
 
 
-juego = Juego(Laberinto(0))
+Director = Director()
+Director.cargarConf("laberintos/Lab2Hab.json")
+Director.iniBuilder()
+Director.construirLaberinto()
 
-juego.fabricarLab2HabCuadradas()
-
-for habitacion in juego.laberinto.hijos:
-    print(habitacion)
-
-juego.obtenerHabitacion(1).sur.entrar(1)
-
-bicho = Bicho("Gusano", 100, 20, Agresivo())
-bicho.actua()
-def funcionVacia(elemento):
-    pass
-juego.laberinto.recorrer(funcionVacia)
-
-juego.abrirPuertas()
+def imprimirElemento(elemento):
+    print(elemento)
+Director.builder.laberinto.recorrer(imprimirElemento)
