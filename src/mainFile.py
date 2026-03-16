@@ -265,12 +265,16 @@ class Laberinto(Contenedor):
         for hijo in self.hijos:
             hijo.recorrer(unBloque)
 
-
-class Bicho():
-    def __init__(self, tipo, vida, poder, modo):
-        self.tipo = tipo
+class Ente(ABC):
+    @abstractmethod
+    def __init__(self, vida, poder):
         self.vida = vida
         self.poder = poder
+        self.ubicadoEn = None
+
+class Bicho(Ente):
+    def __init__(self, vida, poder, modo):
+        super().__init__(vida, poder)
         self.modo = modo
     def actua(self):
         self.modo.actua(self)
@@ -294,20 +298,25 @@ class Modo(ABC):
 
 class Agresivo(Modo):
     def caminar(self, bicho):
-        print(f"{bicho.tipo} se mueve agresivamente")
+        print(f"un bicho se mueve agresivamente")
     def atacar(self, bicho):
-        print(f"{bicho.tipo} ataca con poder {bicho.poder}")
+        print(f"un bicho ataca con poder {bicho.poder}")
     def dormir(self, bicho):
-        print(f"{bicho.tipo} no duerme, siempre está listo para atacar")
+        print(f"un bicho no duerme, siempre está listo para atacar")
 
 class Perezoso(Modo):
     def caminar(self, bicho):
-        print(f"{bicho.tipo} se mueve perezosamente")
+        print(f"un bicho se mueve perezosamente")
     def atacar(self, bicho):
-        print(f"{bicho.tipo} ataca con poder {bicho.poder // 2}")
+        print(f"un bicho ataca con poder {bicho.poder // 2}")
     def dormir(self, bicho):
-        print(f"{bicho.tipo} duerme mucho, recuperando vida")
+        print(f"un bicho duerme mucho, recuperando vida")
         bicho.vida += 10
+
+class Personaje(Ente):
+    def __init__(self, vida, poder, nombre):
+        super().__init__(vida, poder)
+        self.nombre = nombre
 
 class Director:
     def __init__(self):
@@ -319,9 +328,12 @@ class Director:
     def construirLaberinto(self):
         if self.builder:
             self.builder.fabricarLaberinto()
+            self.builder.fabricarJuego()
             for hijo in self.data["laberinto"]:
                 self.fabricarLaberintoRecursivo(0,hijo)
             self.builder.fabricarPuertas(self.data["puertas"])
+            self.builder.fabricarBichos(self.data["bichos"])
+
     
     def construirJuego(self):
         if self.builder:
@@ -346,8 +358,7 @@ class Director:
             self.builder.fabricarBomba(idp, elemento["posicion"])
         if elemento["tipo"] == "armario":
             self.builder.fabricarArmario(idp, elemento["posicion"])
-           
-    
+
     def cargarConf(self, path):
         with open(path) as file:
             self.data = json.load(file)
@@ -397,11 +408,35 @@ class LaberintoBuilder:
         habitacion = self.laberinto.obetenerHabitacion(idp)
         habitacion.orientaciones[orientacion].ponerElemento(habitacion, armario)
 
+    def fabricarBichos(self, bichos):
+        for bicho_info in bichos:
+            bicho = Bicho(bicho_info["vida"], bicho_info["poder"], self.fabricarModo(bicho_info["modo"]))
+            self.juego.agregarBicho(bicho, bicho_info["habitacion"])
+
+    def fabricarModo(self, modo):
+        if modo == "agresivo":
+            return Agresivo()
+        elif modo == "perezoso":
+            return Perezoso()
+        else:
+            print("Modo no reconocido, se asignará el modo perezoso por defecto")
+            return Perezoso()
+
 #Juego sigue el patrón Factory Method, siendo el creador
 class Juego:
     def __init__(self, laberinto):
         self.laberinto = laberinto
         self.bichos = []
+        self.personaje = None
+    
+    def agregarPersonaje(self, personaje):
+        self.personaje = personaje
+        self.personaje.ubicadoEn = self.obtenerHabitacion(1).entrar()
+        
+    
+    def agregarBicho(self, bicho, habitacion_id):
+        bicho.ubicadoEn = self.obtenerHabitacion(habitacion_id)
+        self.bichos.append(bicho)
 
     def obtenerHabitacion(self, id):
         return self.laberinto.obetenerHabitacion(id)
@@ -525,3 +560,4 @@ Director.construirLaberinto()
 def imprimirElemento(elemento):
     print(elemento)
 Director.builder.laberinto.recorrer(imprimirElemento)
+Director.builder.juego.bichos[1].actua()

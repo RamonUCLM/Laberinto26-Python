@@ -12,5 +12,10 @@
     [1,"Este",3,"Oeste"],
     [3,"Sur",4,"Norte"],
     [2,"Este",4,"Oeste"]
+ ],
+ "bichos":[
+    {"vida":100, "poder":20, "modo":"agresivo", "habitacion":2},
+    {"vida":80, "poder":15, "modo":"perezoso", "habitacion":3},
+    {"vida":120, "poder":15, "modo":"perezoso", "habitacion":4}
  ]
 }
