@@ -1,12 +1,13 @@
 from abc import ABC, abstractmethod
 import json
+import random
 
 #
 class ElementoMapa(ABC):
     def __init__(self, id):
         self.id = id
     @abstractmethod
-    def entrar(self):
+    def entrar(self, unEnte):
         pass
     @abstractmethod
     def recorrer(self):
@@ -136,6 +137,13 @@ class Contenedor(ElementoMapa):
 
     def agregarOrientacion(self, orientacion):
         self.orientaciones[orientacion.getOrientacion()] = orientacion
+    
+    def obtenerOrientacionAleatoria(self):
+        if not self.orientaciones:
+            print("No hay orientaciones disponibles")
+            return None
+        return random.choice(list(self.orientaciones.values()))
+
     def setNorte(self, elemento):
         self.orientaciones["Norte"].ponerElemento(self, elemento)
     def setSur(self, elemento):
@@ -166,7 +174,7 @@ class Contenedor(ElementoMapa):
 class Armario(Contenedor):
     def __init__(self, id):
         super().__init__(id)
-    def entrar(self):
+    def entrar(self, unEnte):
         print("Has entrado al armario: ", self.id)
         return self
     def recorrer(self, unBloque):
@@ -179,9 +187,8 @@ class Armario(Contenedor):
 class Habitacion(Contenedor):
     def __init__(self, id):
         super().__init__(id)
-    def entrar(self):
+    def entrar(self, unEnte):
         print("Has entrado a la habitación: ", self.id)
-        return self
     
     def recorrer(self, unBloque):
         print("Recorriendo la habitación: ", self.id)
@@ -213,7 +220,7 @@ class Hoja(ElementoMapa):
 class Pared(Hoja):
     def __init__(self):
         super().__init__()
-    def entrar(self):
+    def entrar(self, unEnte):
         print("Has chocado contra una pared")
     def __str__(self):
         return "Pared"
@@ -229,14 +236,18 @@ class Puerta(Hoja):
         self.lado1 = lado
     def setLado2(self, lado):
         self.lado2 = lado
-    def entrar(self, origen):
+    def entrar(self, unEnte):
         if self.abierta:
-            print("Has pasado por la puerta")
-            if origen == self.lado1:
-                return self.lado2
-            elif origen == self.lado2:
-                return self.lado1
-            raise ValueError("El origen no es válido para esta puerta")
+            if  unEnte.ubicadoEn == self.lado1:
+                print(f"Has pasado por la puerta hacia la habitación {self.lado2.id}")
+                self.lado2.entrar(unEnte)
+                unEnte.ubicadoEn = self.lado2
+            elif unEnte.ubicadoEn == self.lado2:
+                print(f"Has pasado por la puerta hacia la habitación {self.lado1}")
+                self.lado1.entrar(unEnte)
+                unEnte.ubicadoEn = self.lado1
+            else:
+                raise ValueError("El origen no es válido para esta puerta")
         else:
             print("La puerta está cerrada")
     def abrir(self):
@@ -245,7 +256,7 @@ class Puerta(Hoja):
         self.abierta = False
     def __str__(self):
         estado = "abierta" if self.abierta else "cerrada"
-        return f"Puerta {estado} entre {self.lado1} y {self.lado2}"
+        return f"Puerta {estado} entre {self.lado1.id} y {self.lado2.id}"
 
 class Laberinto(Contenedor):
     def __init__(self, id):
@@ -298,7 +309,10 @@ class Modo(ABC):
 
 class Agresivo(Modo):
     def caminar(self, bicho):
-        print(f"un bicho se mueve agresivamente")
+        destino = bicho.ubicadoEn.obtenerOrientacionAleatoria()
+        print(f"un bicho se mueve agresivamente hacia la orientación {destino.getOrientacion()}")
+        bicho.ubicadoEn = destino.getElemento(bicho.ubicadoEn).entrar(bicho)
+
     def atacar(self, bicho):
         print(f"un bicho ataca con poder {bicho.poder}")
     def dormir(self, bicho):
@@ -306,7 +320,12 @@ class Agresivo(Modo):
 
 class Perezoso(Modo):
     def caminar(self, bicho):
-        print(f"un bicho se mueve perezosamente")
+        if random.random() < 0.5:
+            destino = bicho.ubicadoEn.obtenerOrientacionAleatoria()
+            print(f"un bicho se mueve perezosamente hacia la orientación {destino.getOrientacion()}")
+            bicho.ubicadoEn = destino.getElemento(bicho.ubicadoEn).entrar(bicho)
+        else:
+            print(f"el bicho perezoso decide no moverse esta vez")
     def atacar(self, bicho):
         print(f"un bicho ataca con poder {bicho.poder // 2}")
     def dormir(self, bicho):
@@ -400,7 +419,7 @@ class LaberintoBuilder:
         for puerta_info in puertas:
             habitacion1 = self.laberinto.obetenerHabitacion(puerta_info[0])
             habitacion2 = self.laberinto.obetenerHabitacion(puerta_info[2])
-            puerta = Puerta(habitacion1.id, habitacion2.id, abierta=True)
+            puerta = Puerta(habitacion1, habitacion2, abierta=True)
             habitacion1.orientaciones[puerta_info[1]].ponerElemento(habitacion1, puerta)
             habitacion2.orientaciones[puerta_info[3]].ponerElemento(habitacion2, puerta)
     def fabricarArmario(self, idp, orientacion):
@@ -558,6 +577,9 @@ Director.iniBuilder()
 Director.construirLaberinto()
 
 def imprimirElemento(elemento):
-    print(elemento)
+    if isinstance(elemento, Puerta):
+         print(f"Puerta entre {elemento.lado1.id} y {elemento.lado2.id}")
+    else:
+        print(elemento)
 Director.builder.laberinto.recorrer(imprimirElemento)
 Director.builder.juego.bichos[1].actua()
