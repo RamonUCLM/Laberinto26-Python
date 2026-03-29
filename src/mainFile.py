@@ -10,8 +10,8 @@ class ElementoMapa(ABC):
     def entrar(self, unEnte):
         pass
     @abstractmethod
-    def recorrer(self):
-        pass
+    def recorrer(self, unBloque):
+        unBloque(self)
 
 #Singleton para las orientaciones, ya que cada orientación es única en el mapa.
 class Orientacion(ABC):
@@ -32,7 +32,7 @@ class Norte(Orientacion):
     @staticmethod
     def ponerElemento(contenedor, elemento):
         if contenedor.norte:
-            print(f"Sustituyendo elemento en la orientación Norte")
+            print(f"Sustituyendo un elemento {contenedor.norte} por {elemento} en la orientación Norte")
             contenedor.norte = elemento
         else:
             contenedor.norte = elemento
@@ -57,7 +57,7 @@ class Sur(Orientacion):
     @staticmethod
     def ponerElemento(contenedor, elemento):
         if contenedor.sur:
-            print(f"Sustituyendo elemento en la orientación Sur")
+            print(f"Sustituyendo un elemento {contenedor.sur} por {elemento} en la orientación Sur")
             contenedor.sur = elemento
         else:
             contenedor.sur = elemento
@@ -82,7 +82,7 @@ class Este(Orientacion):
     @staticmethod
     def ponerElemento(contenedor, elemento):
         if contenedor.este:
-            print(f"Sustituyendo elemento en la orientación Este")
+            print(f"Sustituyendo un elemento {contenedor.este} por {elemento} en la orientación Este")
             contenedor.este = elemento
         else:
             contenedor.este = elemento
@@ -107,7 +107,7 @@ class Oeste(Orientacion):
     @staticmethod
     def ponerElemento(contenedor, elemento):
         if contenedor.oeste:
-            print(f"Sustituyendo elemento en la orientación Oeste")
+            print(f"Sustituyendo un elemento {contenedor.oeste} por {elemento} en la orientación Oeste")
             contenedor.oeste = elemento
         else:
             contenedor.oeste = elemento
@@ -123,35 +123,62 @@ class Oeste(Orientacion):
         if contenedor.oeste:
             contenedor.oeste.recorrer(unBloque)
 
-#Contenedor sigue el patrón Composite, siendo el composite.
-class Contenedor(ElementoMapa):
+#Patrón Bridge para las formas de las habitaciones, ya que cada forma puede tener diferentes implementaciones de las orientaciones.
+class Forma(ABC):
+    @abstractmethod
+    def __init__(self, orientaciones):
+        self.orientaciones = orientaciones
+        pass
+    @abstractmethod
+    def __str__(self):
+        pass
 
-    def __init__(self, id):
-        super().__init__(id)
-        self.hijos = []
-        self.orientaciones = {}
+class Cuadrado(Forma):
+    def __init__(self, orientaciones):
+        super().__init__(orientaciones)
+        self.agregarOrientacion(Norte)
+        self.agregarOrientacion(Sur)
+        self.agregarOrientacion(Este)
+        self.agregarOrientacion(Oeste)
         self.norte = None
         self.sur = None
         self.este = None
         self.oeste = None
 
+    def obtenerOrientacionAleatoria(self):
+        return random.choice(list(self.orientaciones.values()))
+    def obtenerOrientacionesDisponiblesLista(self):
+        disponibles = []
+        for orientacion in self.orientaciones:
+            disponibles.append(orientacion)
+        return disponibles
+    def recorrer(self, contenedor, unBloque):
+        for orientacion in self.orientaciones:
+            self.orientaciones[orientacion].recorrer(self, unBloque)
     def agregarOrientacion(self, orientacion):
         self.orientaciones[orientacion.getOrientacion()] = orientacion
-    
-    def obtenerOrientacionAleatoria(self):
-        if not self.orientaciones:
-            print("No hay orientaciones disponibles")
-            return None
-        return random.choice(list(self.orientaciones.values()))
+    def ponerElemento(self, contenedor, orientacion, elemento):
+        if orientacion in self.orientaciones:
+            self.orientaciones[orientacion].ponerElemento(self, elemento)
+        else:
+            print(f"La orientación {orientacion} no es válida para esta forma")
+    def __str__(self):
+        return "Cuadrado"
 
-    def setNorte(self, elemento):
-        self.orientaciones["Norte"].ponerElemento(self, elemento)
-    def setSur(self, elemento):
-        self.orientaciones["Sur"].ponerElemento(self, elemento)
-    def setEste(self, elemento):
-        self.orientaciones["Este"].ponerElemento(self, elemento)
-    def setOeste(self, elemento):
-        self.orientaciones["Oeste"].ponerElemento(self, elemento)
+#Contenedor sigue el patrón Composite, siendo el composite.
+class Contenedor(ElementoMapa):
+
+    def __init__(self, id, forma):
+        super().__init__(id)
+        self.hijos = []
+        self.forma = forma
+
+    def obtenerOrientacionAleatoria(self):
+        self.forma.obtenerOrientacionAleatoria()
+
+    def ponerEnOrientacion(self, orientacion, elemento):
+        self.forma.ponerElemento(self, orientacion,elemento)
+
     def obtenerHijo(self, posicion):
         try:
             return self.hijos[posicion]
@@ -166,45 +193,41 @@ class Contenedor(ElementoMapa):
         except IndexError:
             print("La posición no existe en la lista de hijos")
     def recorrer(self, unBloque):
-        print("Recorriendo este contenedor: ", self.id)
         unBloque(self)
         for hijo in self.hijos:
             hijo.recorrer(unBloque)
+        self.forma.recorrer(self, unBloque)
 
 class Armario(Contenedor):
-    def __init__(self, id):
-        super().__init__(id)
+    def __init__(self, id,forma=Cuadrado({})):
+        super().__init__(id, forma)
     def entrar(self, unEnte):
         print("Has entrado al armario: ", self.id)
         return self
     def recorrer(self, unBloque):
-        print("Recorriendo este contenedor: ", self.id)
         unBloque(self)
         for hijo in self.hijos:
             hijo.recorrer(unBloque)
+        self.forma.recorrer(self, unBloque)
+    def __str__(self):
+        cadena = f"Armario {self.id} con forma {self.forma}"
+        return cadena
 
 #Habitación es un composite también.
 class Habitacion(Contenedor):
-    def __init__(self, id):
-        super().__init__(id)
+    def __init__(self, id, forma=Cuadrado({})):
+        super().__init__(id, forma)
     def entrar(self, unEnte):
         print("Has entrado a la habitación: ", self.id)
     
     def recorrer(self, unBloque):
-        print("Recorriendo la habitación: ", self.id)
         unBloque(self)
         for hijo in self.hijos:
             hijo.recorrer(unBloque)
-        for orientacion in self.orientaciones:
-            self.orientaciones[orientacion].recorrer(self, unBloque)
+        self.forma.recorrer(self, unBloque)
 
     def __str__(self):
-        cadena = f"Habitación {self.id} con las siguientes orientaciones:\n"
-        for orientacion in self.orientaciones:
-            if self.orientaciones[orientacion].getElemento(self):
-                cadena += f"En la orientación {orientacion} hay un elemento: {self.orientaciones[orientacion].getElemento(self)}\n"
-            else:
-                cadena += f"En la orientación {orientacion} no hay ningún elemento\n"
+        cadena = f"Habitación {self.id} con forma {self.forma}"
         return cadena
         
 
@@ -259,8 +282,8 @@ class Puerta(Hoja):
         return f"Puerta {estado} entre {self.lado1.id} y {self.lado2.id}"
 
 class Laberinto(Contenedor):
-    def __init__(self, id):
-        super().__init__(id)
+    def __init__(self, id, forma=None):
+        super().__init__(id, forma)
     def entrar(self):
         print("Has entrado al laberinto")
         return self
@@ -282,6 +305,9 @@ class Ente(ABC):
         self.vida = vida
         self.poder = poder
         self.ubicadoEn = None
+
+    def estaVivo(self):
+        return self.vida > 0
 
 class Bicho(Ente):
     def __init__(self, vida, poder, modo):
@@ -330,7 +356,8 @@ class Perezoso(Modo):
         print(f"un bicho ataca con poder {bicho.poder // 2}")
     def dormir(self, bicho):
         print(f"un bicho duerme mucho, recuperando vida")
-        bicho.vida += 10
+        if bicho.vida < 10:
+            bicho.vida += 1
 
 class Personaje(Ente):
     def __init__(self, vida, poder, nombre):
@@ -370,7 +397,7 @@ class Director:
 
     def fabricarLaberintoRecursivo(self,idp,elemento):
         if elemento["tipo"] == "habitacion":
-            self.builder.fabricarHabitacion(elemento["id"])
+            self.builder.fabricarHabitacion(elemento["id"],Cuadrado({}))
             for hijos in elemento["hijos"]:
                 self.fabricarLaberintoRecursivo(elemento["id"],hijos)
         if elemento["tipo"] == "bomba":
@@ -394,11 +421,10 @@ class LaberintoBuilder:
     def fabricarJuego(self):
         self.juego = Juego(self.laberinto)
 
-    def fabricarHabitacion(self, id):
-        habitacion = Habitacion(id)
-        self.fabricarForma(habitacion)
-        for orientacion in habitacion.orientaciones:
-            habitacion.orientaciones[orientacion].ponerElemento(habitacion, self.fabricarPared())
+    def fabricarHabitacion(self, id, forma=Cuadrado({})):
+        habitacion = Habitacion(id, forma)
+        for orientacion in habitacion.forma.obtenerOrientacionesDisponiblesLista():
+            habitacion.ponerEnOrientacion(orientacion, self.fabricarPared())
         self.laberinto.agregarHijo(id, habitacion)
 
     def fabricarForma(self, habitacion):
@@ -413,19 +439,19 @@ class LaberintoBuilder:
     def fabricarBomba(self, idp, orientacion):
         bomba = Bomba(self.fabricarPared())
         habitacion = self.laberinto.obetenerHabitacion(idp)
-        habitacion.orientaciones[orientacion].ponerElemento(habitacion, bomba)
+        habitacion.forma.ponerElemento(habitacion, orientacion, bomba)
 
     def fabricarPuertas(self, puertas):
         for puerta_info in puertas:
             habitacion1 = self.laberinto.obetenerHabitacion(puerta_info[0])
             habitacion2 = self.laberinto.obetenerHabitacion(puerta_info[2])
             puerta = Puerta(habitacion1, habitacion2, abierta=True)
-            habitacion1.orientaciones[puerta_info[1]].ponerElemento(habitacion1, puerta)
-            habitacion2.orientaciones[puerta_info[3]].ponerElemento(habitacion2, puerta)
+            habitacion1.forma.ponerElemento(habitacion1, puerta_info[1], puerta)
+            habitacion2.forma.ponerElemento(habitacion2, puerta_info[3], puerta)
     def fabricarArmario(self, idp, orientacion):
         armario = Armario(0)
         habitacion = self.laberinto.obetenerHabitacion(idp)
-        habitacion.orientaciones[orientacion].ponerElemento(habitacion, armario)
+        habitacion.forma.ponerElemento(habitacion, orientacion, armario)
 
     def fabricarBichos(self, bichos):
         for bicho_info in bichos:
@@ -465,23 +491,23 @@ class Juego:
         habitacion1 = self.fabricarHabitacion(1)
         habitacion2 = self.fabricarHabitacion(2)
         puerta = self.fabricarPuertaAbierta(habitacion1.id, habitacion2.id)
+        #Deprecated, ahora se agregan las orientaciones directamente en la forma de la habitación.
+        #for habitacion in [habitacion1, habitacion2]:
+        #    habitacion.agregarOrientacion(Norte)
+        #    habitacion.agregarOrientacion(Sur)
+        #    habitacion.agregarOrientacion(Este)
+        #    habitacion.agregarOrientacion(Oeste)
+        #
+        #habitacion1.setSur(puerta)
+        #habitacion2.setNorte(puerta)
 
-        for habitacion in [habitacion1, habitacion2]:
-            habitacion.agregarOrientacion(Norte)
-            habitacion.agregarOrientacion(Sur)
-            habitacion.agregarOrientacion(Este)
-            habitacion.agregarOrientacion(Oeste)
+        #habitacion1.setNorte(self.fabricarPared())
+        #habitacion1.setEste(self.fabricarPared())
+        #habitacion1.setOeste(self.fabricarPared())
 
-        habitacion1.setSur(puerta)
-        habitacion2.setNorte(puerta)
-
-        habitacion1.setNorte(self.fabricarPared())
-        habitacion1.setEste(self.fabricarPared())
-        habitacion1.setOeste(self.fabricarPared())
-
-        habitacion2.setSur(self.fabricarPared())
-        habitacion2.setEste(self.fabricarPared())
-        habitacion2.setOeste(self.fabricarPared())
+        #habitacion2.setSur(self.fabricarPared())
+        #habitacion2.setEste(self.fabricarPared())
+        #habitacion2.setOeste(self.fabricarPared())
 
         self.laberinto.agregarHijo(habitacion1.id,habitacion1)
         self.laberinto.agregarHijo(habitacion2.id,habitacion2)
@@ -497,27 +523,27 @@ class Juego:
         puerta24 = self.fabricarPuertaCerrada(habitacion2.id, habitacion4.id)
         puerta34 = self.fabricarPuertaAbierta(habitacion3.id, habitacion4.id)
 
-        for habitacion in [habitacion1, habitacion2, habitacion3, habitacion4]:
-            habitacion.agregarOrientacion(Norte)
-            habitacion.agregarOrientacion(Sur)
-            habitacion.agregarOrientacion(Este)
-            habitacion.agregarOrientacion(Oeste)
+        #for habitacion in [habitacion1, habitacion2, habitacion3, habitacion4]:
+        #    habitacion.agregarOrientacion(Norte)
+        #    habitacion.agregarOrientacion(Sur)
+        #    habitacion.agregarOrientacion(Este)
+        #    habitacion.agregarOrientacion(Oeste)
 
-        habitacion1.setSur(puerta12)
-        habitacion2.setNorte(puerta12)
+        # habitacion1.setSur(puerta12)
+        # habitacion2.setNorte(puerta12)
 
-        habitacion1.setEste(puerta13)
-        habitacion3.setOeste(puerta13)
+        # habitacion1.setEste(puerta13)
+        # habitacion3.setOeste(puerta13)
 
-        habitacion2.setEste(puerta24)
-        habitacion4.setOeste(puerta24)
+        # habitacion2.setEste(puerta24)
+        # habitacion4.setOeste(puerta24)
 
-        habitacion3.setSur(puerta34)
-        habitacion4.setNorte(puerta34)
+        # habitacion3.setSur(puerta34)
+        # habitacion4.setNorte(puerta34)
 
-        for habitacion in [habitacion1, habitacion2, habitacion3, habitacion4]:
-            for orientacion in habitacion.orientaciones:
-                habitacion.orientaciones[orientacion].ponerElemento(habitacion, self.fabricarPared())
+        # for habitacion in [habitacion1, habitacion2, habitacion3, habitacion4]:
+        #     for orientacion in habitacion.orientaciones:
+        #         habitacion.orientaciones[orientacion].ponerElemento(habitacion, self.fabricarPared())
 
         
 
@@ -577,9 +603,8 @@ Director.iniBuilder()
 Director.construirLaberinto()
 
 def imprimirElemento(elemento):
-    if isinstance(elemento, Puerta):
-         print(f"Puerta entre {elemento.lado1.id} y {elemento.lado2.id}")
-    else:
-        print(elemento)
+    print(elemento)
+def funcionVacia(elemento):
+    pass
 Director.builder.laberinto.recorrer(imprimirElemento)
 Director.builder.juego.bichos[1].actua()
