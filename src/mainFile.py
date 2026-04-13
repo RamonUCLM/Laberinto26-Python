@@ -20,6 +20,16 @@ class Orientacion(ABC):
     @abstractmethod
     def getOrientacion(self):
         pass
+    def getOrientacion():
+        print("No implementada: esta función debe devolver el nombre de esta orientación")
+    def ponerElemento(contenedor, elemento):
+        print("No implementada: esta función debe colocar un elemento en esta orientación del contenedor")
+    def quitarElemento(contenedor):
+        print("No implementada: esta función debe quitar el elemento de esta orientación del contenedor")
+    def getElemento(contenedor):
+        print("No implementada: esta función debe devolver el elemento de esta orientación del contenedor")
+    def recorrer(contenedor, unBloque):
+        print("No implementada: esta función debe recorrer los elementos de esta orientación del contenedor siguiendo el pratrón Iterator")
 
 class Norte(Orientacion):
     def __new__(cls, *args, **kwargs):
@@ -32,22 +42,22 @@ class Norte(Orientacion):
         pass
     @staticmethod
     def ponerElemento(contenedor, elemento):
-        if contenedor.norte:
-            print(f"Sustituyendo un elemento {contenedor.norte} por {elemento} en la orientación Norte")
-            contenedor.norte = elemento
+        if contenedor.forma.norte:
+            print(f"Sustituyendo un elemento {contenedor.forma.norte} por {elemento} en la orientación Norte")
+            contenedor.forma.norte = elemento
         else:
-            contenedor.norte = elemento
+            contenedor.forma.norte = elemento
     @staticmethod
     def quitarElemento(contenedor):
-        if contenedor.norte:
-            contenedor.norte = None
+        if contenedor.forma.norte:
+            contenedor.forma.norte = None
     @staticmethod
     def getElemento(contenedor):
         return contenedor.forma.norte
     @staticmethod
     def recorrer(contenedor, unBloque):
-        if contenedor.norte:
-            contenedor.norte.recorrer(unBloque)
+        if contenedor.forma.norte:
+            contenedor.forma.norte.recorrer(unBloque)
 
 class Sur(Orientacion):
     def __new__(cls, *args, **kwargs):
@@ -57,22 +67,22 @@ class Sur(Orientacion):
         return "Sur"
     @staticmethod
     def ponerElemento(contenedor, elemento):
-        if contenedor.sur:
-            print(f"Sustituyendo un elemento {contenedor.sur} por {elemento} en la orientación Sur")
-            contenedor.sur = elemento
+        if contenedor.forma.sur:
+            print(f"Sustituyendo un elemento {contenedor.forma.sur} por {elemento} en la orientación Sur")
+            contenedor.forma.sur = elemento
         else:
-            contenedor.sur = elemento
+            contenedor.forma.sur = elemento
     @staticmethod
     def quitarElemento(contenedor):
-        if contenedor.sur:
-            contenedor.sur = None
+        if contenedor.forma.sur:
+            contenedor.forma.sur = None
     @staticmethod
     def getElemento(contenedor):
         return contenedor.forma.sur
     @staticmethod
     def recorrer(contenedor, unBloque):
-        if contenedor.sur:
-            contenedor.sur.recorrer(unBloque)
+        if contenedor.forma.sur:
+            contenedor.forma.sur.recorrer(unBloque)
 
 class Este(Orientacion):
     def __new__(cls, *args, **kwargs):
@@ -82,23 +92,23 @@ class Este(Orientacion):
         return "Este"
     @staticmethod
     def ponerElemento(contenedor, elemento):
-        if contenedor.este:
-            print(f"Sustituyendo un elemento {contenedor.este} por {elemento} en la orientación Este")
-            contenedor.este = elemento
+        if contenedor.forma.este:
+            print(f"Sustituyendo un elemento {contenedor.forma.este} por {elemento} en la orientación Este")
+            contenedor.forma.este = elemento
         else:
-            contenedor.este = elemento
+            contenedor.forma.este = elemento
     @staticmethod
     def quitarElemento(contenedor):
-        if contenedor.este:
-            contenedor.este = None
+        if contenedor.forma.este:
+            contenedor.forma.este = None
     @staticmethod
     def getElemento(contenedor):
         return contenedor.forma.este
     @staticmethod
     def recorrer(contenedor, unBloque):
-        if contenedor.este:
-            contenedor.este.recorrer(unBloque)
-    
+        if contenedor.forma.este:
+            contenedor.forma.este.recorrer(unBloque)
+
 class Oeste(Orientacion):
     def __new__(cls, *args, **kwargs):
         raise TypeError("Esta clase no se puede instanciar")
@@ -107,22 +117,82 @@ class Oeste(Orientacion):
         return "Oeste"
     @staticmethod
     def ponerElemento(contenedor, elemento):
-        if contenedor.oeste:
-            print(f"Sustituyendo un elemento {contenedor.oeste} por {elemento} en la orientación Oeste")
-            contenedor.oeste = elemento
+        if contenedor.forma.oeste:
+            print(f"Sustituyendo un elemento {contenedor.forma.oeste} por {elemento} en la orientación Oeste")
+            contenedor.forma.oeste = elemento
         else:
-            contenedor.oeste = elemento
+            contenedor.forma.oeste = elemento
     @staticmethod
     def quitarElemento(contenedor):
-        if contenedor.oeste:
-            contenedor.oeste = None
+        if contenedor.forma.oeste:
+            contenedor.forma.oeste = None
     @staticmethod
     def getElemento(contenedor):
         return contenedor.forma.oeste
     @staticmethod
     def recorrer(contenedor, unBloque):
-        if contenedor.oeste:
-            contenedor.oeste.recorrer(unBloque)
+        if contenedor.forma.oeste:
+            contenedor.forma.oeste.recorrer(unBloque)
+
+class Noreste(Orientacion):
+    def __new__(cls, *args, **kwargs):
+        raise TypeError("Esta clase no se puede instanciar")
+    @staticmethod
+    def getOrientacion():
+        return "Noreste"
+    @staticmethod
+    def ponerElemento(contenedor, elemento):
+        if contenedor.forma.noreste:
+            print(f"Sustituyendo un elemento {contenedor.forma.noreste} por {elemento} en la orientación Noreste")
+            contenedor.forma.noreste = elemento
+        else:
+            contenedor.forma.noreste = elemento
+    @staticmethod
+    def quitarElemento(contenedor):
+        if contenedor.forma.noreste:
+            contenedor.forma.noreste = None
+    @staticmethod
+    def getElemento(contenedor):
+        return contenedor.forma.noreste
+    @staticmethod
+    def recorrer(contenedor, unBloque):
+        if contenedor.forma.oeste:
+            contenedor.forma.oeste.recorrer(unBloque)
+
+class Noroeste(Orientacion):
+    def __new__(cls, *args, **kwargs):
+        raise TypeError("Esta clase no se puede instanciar")
+    @staticmethod
+    def getOrientacion():
+        return "Noroeste"
+    @staticmethod
+    def ponerElemento(contenedor, elemento):
+        print("No se pueden colocar elementos en esta orientación")
+    @staticmethod
+    def quitarElemento(contenedor):
+        print("No se pueden quitar elementos de esta orientación")
+    @staticmethod
+    def getElemento(contenedor):
+        print("No hay elementos en esta orientación")
+        return None
+    @staticmethod
+    def recorrer(contenedor, unBloque):
+        print("No hay elementos en esta orientación para recorrer")
+
+class Sureste(Orientacion):
+    def __new__(cls, *args, **kwargs):
+        raise TypeError("Esta clase no se puede instanciar")
+    @staticmethod
+    def getOrientacion():
+        return "Sureste"
+
+class Suroeste(Orientacion):
+    def __new__(cls, *args, **kwargs):
+        raise TypeError("Esta clase no se puede instanciar")
+    @staticmethod
+    def getOrientacion():
+        return "Sureste"
+
 
 #Patrón Bridge para las formas de las habitaciones, ya que cada forma puede tener diferentes implementaciones de las orientaciones.
 class Forma(ABC):
@@ -133,18 +203,6 @@ class Forma(ABC):
     @abstractmethod
     def __str__(self):
         pass
-
-class Cuadrado(Forma):
-    def __init__(self, orientaciones):
-        super().__init__(orientaciones)
-        self.agregarOrientacion(Norte)
-        self.agregarOrientacion(Sur)
-        self.agregarOrientacion(Este)
-        self.agregarOrientacion(Oeste)
-        self.norte = None
-        self.sur = None
-        self.este = None
-        self.oeste = None
 
     def obtenerOrientacionAleatoria(self):
         return random.choice(list(self.orientaciones.values()))
@@ -163,8 +221,44 @@ class Cuadrado(Forma):
             self.orientaciones[orientacion].ponerElemento(self, elemento)
         else:
             print(f"La orientación {orientacion} no es válida para esta forma")
+
+class Cuadrado(Forma):
+    def __init__(self, orientaciones):
+        super().__init__(orientaciones)
+        self.agregarOrientacion(Norte)
+        self.agregarOrientacion(Sur)
+        self.agregarOrientacion(Este)
+        self.agregarOrientacion(Oeste)
+        self.norte = None
+        self.sur = None
+        self.este = None
+        self.oeste = None
+
     def __str__(self):
         return "Cuadrado"
+    
+class Rombo(Forma):
+    def __init__(self, orientaciones):
+        super().__init__(orientaciones)
+        self.agregarOrientacion(Norte)
+        self.agregarOrientacion(Sur)
+        self.agregarOrientacion(Este)
+        self.agregarOrientacion(Oeste)
+        self.agregarOrientacion(Noreste)
+        self.agregarOrientacion(Noroeste)
+        self.agregarOrientacion(Sureste)
+        self.agregarOrientacion(Suroeste)
+        self.norte = None
+        self.sur = None
+        self.este = None
+        self.oeste = None
+        self.noreste = None
+        self.noroeste = None
+        self.sureste = None
+        self.suroeste = None
+
+    def __str__(self):
+        return "Rombo"
 
 #Contenedor sigue el patrón Composite, siendo el composite.
 class Contenedor(ElementoMapa):
