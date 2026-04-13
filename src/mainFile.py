@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 import json
 import random
+import copy
 
 #
 class ElementoMapa(ABC):
@@ -42,7 +43,7 @@ class Norte(Orientacion):
             contenedor.norte = None
     @staticmethod
     def getElemento(contenedor):
-        return contenedor.norte
+        return contenedor.forma.norte
     @staticmethod
     def recorrer(contenedor, unBloque):
         if contenedor.norte:
@@ -67,7 +68,7 @@ class Sur(Orientacion):
             contenedor.sur = None
     @staticmethod
     def getElemento(contenedor):
-        return contenedor.sur
+        return contenedor.forma.sur
     @staticmethod
     def recorrer(contenedor, unBloque):
         if contenedor.sur:
@@ -92,7 +93,7 @@ class Este(Orientacion):
             contenedor.este = None
     @staticmethod
     def getElemento(contenedor):
-        return contenedor.este
+        return contenedor.forma.este
     @staticmethod
     def recorrer(contenedor, unBloque):
         if contenedor.este:
@@ -117,7 +118,7 @@ class Oeste(Orientacion):
             contenedor.oeste = None
     @staticmethod
     def getElemento(contenedor):
-        return contenedor.oeste
+        return contenedor.forma.oeste
     @staticmethod
     def recorrer(contenedor, unBloque):
         if contenedor.oeste:
@@ -174,7 +175,7 @@ class Contenedor(ElementoMapa):
         self.forma = forma
 
     def obtenerOrientacionAleatoria(self):
-        self.forma.obtenerOrientacionAleatoria()
+        return self.forma.obtenerOrientacionAleatoria()
 
     def ponerEnOrientacion(self, orientacion, elemento):
         self.forma.ponerElemento(self, orientacion,elemento)
@@ -239,6 +240,18 @@ class Hoja(ElementoMapa):
     def recorrer(self, unBloque):
         unBloque(self)
         
+class Tunel(Hoja):
+    def __init__(self):
+        self.laberinto = None
+    def setLaberinto(self, laberinto):
+        self.laberinto = laberinto
+    def getLaberinto(self):
+        return self.laberinto
+    def entrar(self, unEnte):
+        self.laberinto = copy.deepcopy(unEnte.juego.laberintoPrototipo)
+        self.laberinto.entrar(unEnte)
+    def __str__(self):
+        return "Túnel"
 
 class Pared(Hoja):
     def __init__(self):
@@ -404,6 +417,8 @@ class Director:
             self.builder.fabricarBomba(idp, elemento["posicion"])
         if elemento["tipo"] == "armario":
             self.builder.fabricarArmario(idp, elemento["posicion"])
+        if elemento["tipo"] == "tunel":
+            self.builder.fabricarTunel(idp, tunel, elemento["posicion"])
 
     def cargarConf(self, path):
         with open(path) as file:
@@ -420,6 +435,7 @@ class LaberintoBuilder:
     
     def fabricarJuego(self):
         self.juego = Juego(self.laberinto)
+        self.juego.crearPrototipoLaberinto()
 
     def fabricarHabitacion(self, id, forma=Cuadrado({})):
         habitacion = Habitacion(id, forma)
@@ -452,6 +468,11 @@ class LaberintoBuilder:
         armario = Armario(0)
         habitacion = self.laberinto.obetenerHabitacion(idp)
         habitacion.forma.ponerElemento(habitacion, orientacion, armario)
+    
+    def fabricarTunel(self, idp, tunel, orientacion):
+        tunel = Tunel()
+        habitacion = self.laberinto.obetenerHabitacion(idp)
+        habitacion.forma.ponerElemento(habitacion, orientacion, tunel)
 
     def fabricarBichos(self, bichos):
         for bicho_info in bichos:
@@ -473,6 +494,10 @@ class Juego:
         self.laberinto = laberinto
         self.bichos = []
         self.personaje = None
+        self.laberintoPrototipo = None
+
+    def crearPrototipoLaberinto(self):
+        self.laberintoPrototipo = copy.deepcopy(self.laberinto)
     
     def agregarPersonaje(self, personaje):
         self.personaje = personaje
