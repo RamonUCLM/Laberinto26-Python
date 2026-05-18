@@ -6,14 +6,57 @@ import threading
 import time
 import logging
 import subprocess
+import Visitor as visitors
 
 def cargarLogging():
     logging.basicConfig(level=logging.INFO, filename='juego.log', filemode='w')
+
+
+class Comando(ABC):
+    def __init__(self, receptor):
+        self.receptor = receptor
+    @abstractmethod
+    def ejecutar(self, unEnte):
+        pass
+
+class Abrir(Comando):
+    def ejecutar(self, unEnte):
+        self.receptor.setAbierta(True)
+    def __str__(self):
+        return f"Abrir"
+class Cerrar(Comando):
+    def ejecutar(self, unEnte):
+        self.receptor.setAbierta(False)
+    def __str__(self):
+        return f"Cerrar"
+class entrar(Comando):
+    def ejecutar(self, unEnte):
+        self.result = self.receptor.entrar(unEnte)
+    def __str__(self):
+        return f"Entrar"
+class explorar(Comando):
+    def ejecutar(self, unEnte):
+        self.result = self.receptor.entrar(unEnte)
+    def __str__(self):
+        return f"Explorar"
 
 #
 class ElementoMapa(ABC):
     def __init__(self, id):
         self.id = id
+        self.comandos = []
+    def agregarComando(self, comando):
+        self.comandos.append(comando)
+    def ejecutarComando(self, comando):
+        if comando in self.comandos:
+            comando.ejecutar()
+        else:
+            print("El comando no está asociado a este elemento del mapa")     
+    def eliminarComando(self, comando):
+        if comando in self.comandos:
+            self.comandos.remove(comando)
+    def listarComandos(self):
+        return self.comandos
     @abstractmethod
     def entrar(self, unEnte):
         pass
@@ -43,7 +86,7 @@ class Orientacion(ABC):
     def recorrer(contenedor, unBloque):
         print("No implementada: esta función debe recorrer los elementos de esta orientación del contenedor siguiendo el pratrón Iterator")
     @staticmethod   
-    def aceptar(visitor):
+    def aceptar(visitor, forma):
         print("No implementada: esta función debe aceptar un visitor para esta orientación del contenedor")
 
 class Norte(Orientacion):
@@ -72,8 +115,10 @@ class Norte(Orientacion):
     @staticmethod
     def recorrer(forma, unBloque):
         if forma.norte:
+            print("En el norte hay:")
             forma.norte.recorrer(unBloque)
-    def aceptar(self, visitor, forma):
+    @staticmethod
+    def aceptar(visitor, forma):
         forma.norte.aceptar(visitor)
 
 class Sur(Orientacion):
@@ -98,9 +143,11 @@ class Sur(Orientacion):
         return forma.sur
     @staticmethod
     def recorrer(forma, unBloque):
+        print("En el sur hay:")
         if forma.sur:
             forma.sur.recorrer(unBloque)
-    def aceptar(self, visitor, forma):
+    @staticmethod
+    def aceptar(visitor, forma):
         forma.sur.aceptar(visitor)
 
 class Este(Orientacion):
@@ -125,9 +172,11 @@ class Este(Orientacion):
         return forma.este
     @staticmethod
     def recorrer(forma, unBloque):
+        print("En el este hay:")
         if forma.este:
             forma.este.recorrer(unBloque)
-    def aceptar(self, visitor, forma):
+    @staticmethod
+    def aceptar(visitor, forma):
         forma.este.aceptar(visitor)
 
 class Oeste(Orientacion):
@@ -152,9 +201,11 @@ class Oeste(Orientacion):
         return forma.oeste
     @staticmethod
     def recorrer(forma, unBloque):
+        print("En el oeste hay:")
         if forma.oeste:
             forma.oeste.recorrer(unBloque)
-    def aceptar(self, visitor, forma):
+    @staticmethod
+    def aceptar(visitor, forma):
         forma.oeste.aceptar(visitor)
 
 class Noreste(Orientacion):
@@ -183,7 +234,8 @@ class Noreste(Orientacion):
     def recorrer(forma, unBloque):
         if forma.noreste:
             forma.noreste.recorrer(unBloque)
-    def aceptar(self, visitor, forma):
+    @staticmethod
+    def aceptar(visitor, forma):
         forma.noreste.aceptar(visitor)
 
 class Noroeste(Orientacion):
@@ -212,7 +264,8 @@ class Noroeste(Orientacion):
     def recorrer(forma, unBloque):
         if forma.noreste:
             forma.noreste.recorrer(unBloque)
-    def aceptar(self, visitor, forma):
+    @staticmethod
+    def aceptar(visitor, forma):
         forma.noroeste.aceptar(visitor)
 
 class Sureste(Orientacion):
@@ -241,7 +294,8 @@ class Sureste(Orientacion):
     def recorrer(forma, unBloque):
         if forma.sureste:
             forma.sureste.recorrer(unBloque)
-    def aceptar(self, visitor, forma):
+    @staticmethod
+    def aceptar(visitor, forma):
         forma.sureste.aceptar(visitor)
 
 class Suroeste(Orientacion):
@@ -270,7 +324,8 @@ class Suroeste(Orientacion):
     def recorrer(forma, unBloque):
         if forma.suroeste:
             forma.suroeste.recorrer(unBloque)
-    def aceptar(self, visitor, forma):
+    @staticmethod
+    def aceptar(visitor, forma):
         forma.suroeste.aceptar(visitor)
 
 
@@ -372,10 +427,8 @@ class Contenedor(ElementoMapa):
         for hijo in self.hijos:
             hijo.recorrer(unBloque)
         self.forma.recorrer(self, unBloque)
-    def visitarContenedor(self, visitor):
-        visitor.visitarContenedor(self)
     def aceptar(self, visitor):
-        self.visitarContenedor(visitor)
+        visitor.visitarContenedor(self)
         for hijo in self.hijos:
             hijo.aceptar(visitor)
         for orientacion in self.forma.orientaciones:
@@ -385,12 +438,17 @@ class Contenedor(ElementoMapa):
 class Armario(Contenedor):
     def __init__(self, id,forma=Cuadrado({})):
         super().__init__(id, forma)
+        self.comandos = []
+        self.abierto = False
     def entrar(self, unEnte):
         if isinstance(unEnte, Personaje):
             print("Has entrado al armario: ", self.id)
+            logging.info(f"Un {unEnte} entra en el armario: {self.id}")
         else:
             logging.info(f"Un {unEnte} entra en el armario: {self.id}")
         return self
+    def setAbierta(self, abierta):
+        self.abierto = abierta
     def recorrer(self, unBloque):
         unBloque(self)
         for hijo in self.hijos:
@@ -399,8 +457,12 @@ class Armario(Contenedor):
     def __str__(self):
         cadena = f"Armario {self.id} con forma {self.forma}"
         return cadena
-    def visitarContenedor(self, visitor):
+    def aceptar(self, visitor):
         visitor.visitarArmario(self)
+        for hijo in self.hijos:
+            hijo.aceptar(visitor)
+        for orientacion in self.forma.orientaciones:
+            self.forma.orientaciones[orientacion].aceptar(visitor, self.forma)
 
 #Habitación es un composite también.
 class Habitacion(Contenedor):
@@ -409,30 +471,37 @@ class Habitacion(Contenedor):
     def entrar(self, unEnte):
         if isinstance(unEnte, Personaje):
             print("Has entrado a la habitación: ", self.id)
+            logging.info(f"Un {unEnte} entra en la habitación: {self.id}")
         else:
             logging.info(f"Un {unEnte} entra en la habitación: {self.id}")
         return self
     
     def recorrer(self, unBloque):
         unBloque(self)
-        for hijo in self.hijos:
-            hijo.recorrer(unBloque)
+        #for hijo in self.hijos:
+        #    hijo.recorrer(unBloque)
         self.forma.recorrer(self, unBloque)
 
     def __str__(self):
         cadena = f"Habitación {self.id} con forma {self.forma}"
         return cadena
-    def visitarContenedor(self, visitor):
+    def aceptar(self, visitor):
         visitor.visitarHabitacion(self)
+        for hijo in self.hijos:
+            hijo.aceptar(visitor)
+        for orientacion in self.forma.orientaciones:
+            self.forma.orientaciones[orientacion].aceptar(visitor, self.forma)
         
 
 #Hoja sigue el patrón Composite, siendo la hoja
 class Hoja(ElementoMapa):
-    @abstractmethod
     def __init__(self):
-        pass
+        self.comandos = []
     def recorrer(self, unBloque):
         unBloque(self)
+    def listaComandos(self):
+        return self.comandos
+
         
 class Tunel(Hoja):
     def __init__(self):
@@ -455,6 +524,7 @@ class Pared(Hoja):
     def entrar(self, unEnte):
         if isinstance(unEnte, Personaje):
             print("Has chocado contra una pared en la habitación: ", unEnte.ubicadoEn.id)
+            logging.info(f"Un {unEnte} choca contra una pared en la habitación: {unEnte.ubicadoEn.id}")
         else:
             logging.info(f"Un {unEnte} choca contra una pared en la habitación: {unEnte.ubicadoEn.id}")
     def __str__(self):
@@ -464,6 +534,7 @@ class Pared(Hoja):
 
 class Puerta(Hoja):
     def __init__(self, lado1, lado2, abierta=False):
+        super().__init__()
         self.lado1 = lado1
         self.lado2 = lado2
         self.abierta = abierta
@@ -478,24 +549,30 @@ class Puerta(Hoja):
             if  unEnte.ubicadoEn == self.lado1:
                 if isinstance(unEnte, Personaje):
                     print(f"Has pasado por la puerta hacia la habitación {self.lado2.id}")
+                    logging.info(f"Un {unEnte} pasa por la puerta hacia la habitación {self.lado2.id}")
                 else:
                     logging.info(f"Un {unEnte} pasa por la puerta hacia la habitación {self.lado2.id}")
                 self.lado2.entrar(unEnte)
                 unEnte.ubicadoEn = self.lado2
+                return True
             elif unEnte.ubicadoEn == self.lado2:
                 if isinstance(unEnte, Personaje):
                     print(f"Has pasado por la puerta hacia la habitación {self.lado1.id}")
+                    logging.info(f"Un {unEnte} pasa por la puerta hacia la habitación {self.lado1.id}")
                 else:                    
                     logging.info(f"Un {unEnte} pasa por la puerta hacia la habitación {self.lado1.id}")
                 self.lado1.entrar(unEnte)
                 unEnte.ubicadoEn = self.lado1
+                return True
             else:
                 raise ValueError("El origen no es válido para esta puerta")
         else:
             if isinstance(unEnte, Personaje):
                 print("La puerta está cerrada, no puedes pasar")
+                logging.info(f"Un {unEnte} intenta pasar por una puerta cerrada entre {self.lado1.id} y {self.lado2.id}")
             else:
                 logging.info(f"Un {unEnte} intenta pasar por una puerta cerrada entre {self.lado1.id} y {self.lado2.id}")
+            return False
     def abrir(self):
         self.abierta = True
     def cerrar(self):
@@ -566,13 +643,13 @@ class Modo(ABC):
 class Agresivo(Modo):
     def caminar(self, bicho):
         destino = bicho.ubicadoEn.obtenerOrientacionAleatoria()
-        print(f"un bicho se mueve agresivamente hacia la orientación {destino.getOrientacion()}")
-        bicho.ubicadoEn = destino.getElemento(bicho.ubicadoEn).entrar(bicho)
+        logging.info(f"un bicho se mueve agresivamente hacia la orientación {destino.getOrientacion()}")
+        destino.getElemento(bicho.ubicadoEn.forma).entrar(bicho)
 
     def atacar(self, bicho):
-        print(f"un bicho ataca con poder {bicho.poder}")
+        logging.info(f"un bicho ataca con poder {bicho.poder}")
     def dormir(self, bicho):
-        print(f"un bicho no duerme, siempre está listo para atacar")
+        logging.info(f"un bicho no duerme, siempre está listo para atacar")
 
 class Perezoso(Modo):
     def caminar(self, bicho):
@@ -594,7 +671,7 @@ class Personaje(Ente):
         super().__init__(vida, poder)
         self.nombre = nombre
 
-class Director:
+class Director():
     def __init__(self):
         self.builder = None
 
@@ -609,8 +686,8 @@ class Director:
                 self.fabricarLaberintoRecursivo(0,hijo)
             self.builder.fabricarPuertas(self.data["puertas"])
             self.builder.fabricarBichos(self.data["bichos"])
+            self.builder.fabricarPersonaje(self.data["personaje"])
 
-    
     def construirJuego(self):
         if self.builder:
             self.builder.fabricarJuego()
@@ -636,6 +713,10 @@ class Director:
             self.builder.fabricarArmario(idp, elemento["posicion"])
         if elemento["tipo"] == "tunel":
             self.builder.fabricarTunel(idp, elemento["posicion"])
+        if elemento["tipo"] == "hongo":
+            self.builder.fabricarHongo(idp, elemento["posicion"])
+        if elemento["tipo"] == "boton":
+            self.builder.fabricarBoton(idp, elemento["posicion"])
 
     def cargarConf(self, path):
         with open(path) as file:
@@ -667,10 +748,13 @@ class LaberintoBuilder:
         habitacion.agregarOrientacion(Oeste)
     
     def fabricarPared(self):
-        return Pared()
+        pared = Pared()
+        pared.comandos.append(explorar(pared))
+        return pared
     
     def fabricarBomba(self, idp, orientacion):
         bomba = Bomba(self.fabricarPared())
+        bomba.comandos.append(explorar(bomba))
         habitacion = self.laberinto.obetenerHabitacion(idp)
         habitacion.forma.ponerElemento(habitacion, orientacion, bomba)
 
@@ -679,10 +763,22 @@ class LaberintoBuilder:
             habitacion1 = self.laberinto.obetenerHabitacion(puerta_info[0])
             habitacion2 = self.laberinto.obetenerHabitacion(puerta_info[2])
             puerta = Puerta(habitacion1, habitacion2, abierta=True)
+            puerta.comandos.append(Abrir(puerta))
+            puerta.comandos.append(Cerrar(puerta))
+            puerta.comandos.append(entrar(puerta))
             habitacion1.forma.ponerElemento(habitacion1, puerta_info[1], puerta)
             habitacion2.forma.ponerElemento(habitacion2, puerta_info[3], puerta)
+    def fabricarHongo(self, idp, orientacion):
+        hongo = Hongo(self.fabricarPared())
+        habitacion = self.laberinto.obetenerHabitacion(idp)
+        habitacion.forma.ponerElemento(habitacion, orientacion, hongo)
+    def fabricarBoton(self, idp, orientacion):
+        boton = Boton(self.fabricarPared(),self.laberinto)
+        habitacion = self.laberinto.obetenerHabitacion(idp)
+        habitacion.forma.ponerElemento(habitacion, orientacion, boton)
     def fabricarArmario(self, idp, orientacion):
         armario = Armario(0)
+        armario.comandos.append(Abrir(armario))
         habitacion = self.laberinto.obetenerHabitacion(idp)
         habitacion.forma.ponerElemento(habitacion, orientacion, armario)
     
@@ -704,6 +800,10 @@ class LaberintoBuilder:
         else:
             print("Modo no reconocido, se asignará el modo perezoso por defecto")
             return Perezoso()
+    
+    def fabricarPersonaje(self, personaje_info):
+        personaje = Personaje(personaje_info["vida"], personaje_info["poder"], personaje_info["nombre"])
+        self.juego.agregarPersonaje(personaje, personaje_info["habitacion"])
 
 #Juego sigue el patrón Factory Method, siendo el creador
 class Juego:
@@ -730,9 +830,9 @@ class Juego:
     def crearPrototipoLaberinto(self):
         self.laberintoPrototipo = copy.deepcopy(self.laberinto)
     
-    def agregarPersonaje(self, personaje):
+    def agregarPersonaje(self, personaje, habitacion_id=1):
         self.personaje = personaje
-        self.personaje.ubicadoEn = self.obtenerHabitacion(1).entrar()
+        self.personaje.ubicadoEn = self.obtenerHabitacion(habitacion_id).entrar(self.personaje)
         
     
     def agregarBicho(self, bicho, habitacion_id):
@@ -753,6 +853,10 @@ class Juego:
             else:
                 print("No es una puerta")
         self.laberinto.recorrer(abrirPuertasRecursivo)
+    def step(self):
+        for bicho in self.bichos:
+            if bicho.estaVivo():
+                bicho.actua()
 
 class JuegoBombas(Juego):
     def fabricarPared(self):
@@ -762,11 +866,14 @@ class Decorator(Hoja):
     @abstractmethod
     def __init__(self, elemento):
         self.elemento = elemento
+        self.comandos = []
+    def listaComandos(self):
+        return self.comandos
 
 class Bomba(Decorator):
     def __init__(self, elemento):
         super().__init__(elemento)
-        self.activada = False
+        self.activada = True
     def entrar(self, unEnte):
         if self.activada:
             print(f"BOOM! Un {unEnte} ha activado una bomba y ha perdido 5 puntos de vida")
@@ -776,34 +883,127 @@ class Bomba(Decorator):
         return self.elemento.__str__() + " con una bomba"
     def aceptar(self, visitor):
         visitor.visitarBomba(self)
+class Hongo(Decorator):
+    def __init__(self, elemento):
+        super().__init__(elemento)
+    def entrar(self, unEnte):
+        print(f"Un {unEnte} ha encontrado un hongo y ha ganado 5 puntos de vida")
+        unEnte.vida += 5
+        self.elemento.entrar(unEnte)
+    def __str__(self):
+        return self.elemento.__str__() + " con un hongo"
+    def aceptar(self, visitor):
+        visitor.visitarHongo(self)
 
-#def Jugar():
+class Boton(Decorator):
+    def __init__(self, elemento, laberinto):
+        super().__init__(elemento)
+        self.laberinto = laberinto
+    def entrar(self, unEnte):
+        print(f"Un {unEnte} ha presionado un botón y se han abierto todas las puertas del laberinto")
+        visitor = visitors.visitorAbrirPuertas()
+        self.laberinto.aceptar(visitor)
+        self.elemento.entrar(unEnte)
+    def __str__(self):
+        return self.elemento.__str__() + " con un botón"
+    def aceptar(self, visitor):
+        visitor.visitarBoton(self)
+
+def Jugar(self):
+    cargarLogging()
+    self.director = Director()
+    self.director.cargarConf("laberintos/Lab2Hab.json")
+    self.director.iniBuilder()
+    self.director.construirLaberinto()
+
+    def imprimirElemento(elemento):
+        print(elemento)
+    def funcionVacia(elemento):
+        pass
+    director.builder.laberinto.recorrer(imprimirElemento)
+
+    #print("Lanzado bichos...")
+    #director.builder.juego.lanzarBicho(director.builder.juego.bichos[1], 2)
+
+    #def abrir_monitor_logs():
+    #    # Usamos powershell para hacer un "tail" del archivo log
+    #    comando = 'Get-Content -Path "juego.log" -Wait'
+    #    # Abrimos una ventana nueva de PowerShell
+    #    subprocess.Popen(['start', 'powershell', '-NoExit', '-Command', comando], shell=True)
+
+    #abrir_monitor_logs()
+
+    #input("Presiona Enter para detener los bichos...")
+    #Director.builder.juego.detenerBichos()
+
 cargarLogging()
-Director = Director()
-Director.cargarConf("laberintos/Lab2Hab.json")
-Director.iniBuilder()
-Director.construirLaberinto()
+director = Director()
+director.cargarConf("src\laberintos\Lab2Hab.json")
+director.iniBuilder()
+director.construirLaberinto()
 
-def imprimirElemento(elemento):
-    print(elemento)
 def funcionVacia(elemento):
     pass
-Director.builder.laberinto.recorrer(imprimirElemento)
-Director.builder.juego.bichos[1].actua()
 
-print("Lanzado bichos...")
-Director.builder.juego.lanzarBicho(Director.builder.juego.bichos[1], 2)
+#director.builder.laberinto.recorrer(imprimirElemento)
 
-def abrir_monitor_logs():
-    # Usamos powershell para hacer un "tail" del archivo log
-    comando = 'Get-Content -Path "juego.log" -Wait'
-    # Abrimos una ventana nueva de PowerShell
-    subprocess.Popen(['start', 'powershell', '-NoExit', '-Command', comando], shell=True)
+import time
+import sys
+import os
+import platform
 
-abrir_monitor_logs()
+def escribir_lento(texto, velocidad=0.03):
+    if isinstance(texto, list):
+        textoini = texto
+        texto = ""
+        for linea in textoini:
+            texto += str(linea) + "\n"
+    for letra in texto:
+        # sys.stdout.write no añade un salto de línea automático como print
+        sys.stdout.write(letra)
+        sys.stdout.flush() # Fuerza a la terminal a mostrar la letra YA
+        time.sleep(velocidad) # Pausa en segundos (0.05 = 50 milisegundos)
+    print() # Al terminar, hace el salto de línea
 
-input("Presiona Enter para detener los bichos...")
-Director.builder.juego.detenerBichos()
+def limpiar_pantalla():
+    # platform.system() devuelve 'Windows', 'Linux' o 'Darwin' (macOS)
+    if platform.system() == "Windows":
+        os.system('cls')
+    else:
+        os.system('clear')
 
+def imprimirElemento(elemento):
+    escribir_lento(elemento.__str__(), velocidad=0.03)
+opcion = ""
+while opcion != "salir":
+    print("----------------------------------------------------------")
+    print(director.builder.juego.personaje.ubicadoEn.recorrer(imprimirElemento))
 
-
+    print("")
+    escribir_lento("A donde quieres ir?",velocidad=0.03)
+    opcion = input("")
+    print("")
+    if opcion in director.builder.juego.personaje.ubicadoEn.forma.orientaciones:
+        orientacion = director.builder.juego.personaje.ubicadoEn.forma.orientaciones[opcion]
+        elemento = orientacion.getElemento(director.builder.juego.personaje.ubicadoEn.forma)
+        flagCommando = True
+        while flagCommando:
+            escribir_lento("Te encuentras con " + str(elemento), velocidad=0.03)
+            print("")
+            escribir_lento("¿Qué quieres hacer?", velocidad=0.03)
+            escribir_lento(elemento.listarComandos(), velocidad=0.03)
+            escribir_lento("Selecciona una acción (1..{})".format(len(elemento.listaComandos())), velocidad=0.03)
+            accion = input("")
+            try:
+                elemento.comandos[int(accion)-1].ejecutar(director.builder.juego.personaje)
+                flagCommando = False
+            except (ValueError, IndexError):
+                escribir_lento("Acción no válida", velocidad=0.03)
+                print("")
+                flagCommando = True
+        director.builder.juego.step()
+    else:
+        escribir_lento("Opción no válida", velocidad=0.03)
+    escribir_lento("Pulsa Enter para continuar...", velocidad=0.03)
+    input("")
+    limpiar_pantalla()

@@ -1,10 +1,13 @@
 {"forma":"poligono4",
  "laberinto":[{"tipo":"habitacion", "id":1,"hijos":[
-                                                {"tipo":"bomba","posicion":"Norte"},
-                                                {"tipo":"armario","posicion":"Oeste"}
+                                                {"tipo":"boton","posicion":"Oeste"},
+                                                {"tipo":"bomba","posicion":"Norte"}
                                              ]
                },
-             {"tipo":"habitacion", "id":2,"hijos":[]},
+             {"tipo":"habitacion", "id":2,"hijos":[
+                                                {"tipo":"armario","posicion":"Sur"},
+                                                {"tipo":"hongo","posicion":"Oeste"}
+             ]},
              {"tipo":"habitacion", "id":3,"hijos":[]},
              {"tipo":"habitacion", "id":4,"hijos":[]}],
  "puertas":[
@@ -17,5 +20,6 @@
     {"vida":100, "poder":20, "modo":"agresivo", "habitacion":2},
     {"vida":80, "poder":15, "modo":"perezoso", "habitacion":3},
     {"vida":120, "poder":15, "modo":"perezoso", "habitacion":4}
- ]
+ ],
+ "personaje":{"nombre":"Heroe", "vida":150, "poder":30, "habitacion":1}
 }

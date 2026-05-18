@@ -11,8 +11,14 @@ class Visitor():
         pass
     def visitarPared(self, pared):
         pass
+    def visitarPersonaje(self, personaje):
+        pass
+    def visitarBoton(self, boton):
+        pass
+    def visitarHongo(self, hongo):
+        pass
 
-class visitorAbrirPuerta(Visitor):
+class visitorAbrirPuertas(Visitor):
     def visitarPuerta(self, puerta):
         puerta.abrir()
 

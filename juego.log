@@ -1,15 +1,14 @@
-INFO:root:El bicho perezoso decidió no moverse esta vez
+INFO:root:Un <__main__.Personaje object at 0x000002127AAFABA0> entra en la habitación: 1
+INFO:root:Un <__main__.Personaje object at 0x000002127AAFABA0> choca contra una pared en la habitación: 1
+INFO:root:un bicho se mueve agresivamente hacia la orientación Oeste
+INFO:root:Un Bicho choca contra una pared en la habitación: 2
+INFO:root:un bicho ataca con poder 20
+INFO:root:un bicho no duerme, siempre está listo para atacar
+INFO:root:un bicho se mueve perezosamente hacia la orientación Norte
+INFO:root:Un Bicho choca contra una pared en la habitación: 3
 INFO:root:un bicho ataca con poder 7
 INFO:root:un bicho duerme mucho, recuperando vida
-INFO:root:El bicho perezoso decidió no moverse esta vez
-INFO:root:un bicho ataca con poder 7
-INFO:root:un bicho duerme mucho, recuperando vida
-INFO:root:un bicho se mueve perezosamente hacia la orientación Oeste
-INFO:root:Un Bicho pasa por la puerta hacia la habitación 1
-INFO:root:Un Bicho entra en la habitación: 1
-INFO:root:un bicho ataca con poder 7
-INFO:root:un bicho duerme mucho, recuperando vida
-INFO:root:un bicho se mueve perezosamente hacia la orientación Oeste
-INFO:root:Un Bicho entra en el armario: 0
+INFO:root:un bicho se mueve perezosamente hacia la orientación Sur
+INFO:root:Un Bicho choca contra una pared en la habitación: 4
 INFO:root:un bicho ataca con poder 7
 INFO:root:un bicho duerme mucho, recuperando vida
