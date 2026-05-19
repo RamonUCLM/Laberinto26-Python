@@ -7,6 +7,33 @@ import time
 import logging
 import subprocess
 import Visitor as visitors
+import time
+import sys
+import os
+import platform
+
+def escribir_lento(texto, velocidad=0.03):
+    if isinstance(texto, list):
+        textoini = texto
+        texto = ""
+        for linea in textoini:
+            texto += str(linea) + "\n"
+    for letra in texto:
+        # sys.stdout.write no añade un salto de línea automático como print
+        sys.stdout.write(letra)
+        sys.stdout.flush() # Fuerza a la terminal a mostrar la letra YA
+        time.sleep(velocidad) # Pausa en segundos (0.05 = 50 milisegundos)
+    print() # Al terminar, hace el salto de línea
+
+def limpiar_pantalla():
+    # platform.system() devuelve 'Windows', 'Linux' o 'Darwin' (macOS)
+    if platform.system() == "Windows":
+        os.system('cls')
+    else:
+        os.system('clear')
+
+def imprimirElemento(elemento):
+    escribir_lento(elemento.__str__(), velocidad=0.03)
 
 def cargarLogging():
     logging.basicConfig(level=logging.INFO, filename='juego.log', filemode='w')
@@ -606,17 +633,18 @@ class Laberinto(Contenedor):
 
 class Ente(ABC):
     @abstractmethod
-    def __init__(self, vida, poder):
+    def __init__(self, vida, poder, juego):
         self.vida = vida
         self.poder = poder
+        self.juego = juego
         self.ubicadoEn = None
 
     def estaVivo(self):
         return self.vida > 0
 
 class Bicho(Ente):
-    def __init__(self, vida, poder, modo):
-        super().__init__(vida, poder)
+    def __init__(self, vida, poder, modo, juego):
+        super().__init__(vida, poder, juego)
         self.modo = modo
     def actua(self):
         self.modo.actua(self)
@@ -647,7 +675,14 @@ class Agresivo(Modo):
         destino.getElemento(bicho.ubicadoEn.forma).entrar(bicho)
 
     def atacar(self, bicho):
-        logging.info(f"un bicho ataca con poder {bicho.poder}")
+        logging.info(f"un bicho busca objetivo")
+        objetivo = bicho.juego.bichoBuscarObjetivo(bicho)
+        if objetivo:
+            objetivo.vida -= bicho.poder
+            logging.info(f"un bicho ataca al personaje, reduciendo su vida a {objetivo.vida}")
+            escribir_lento("¡Un bicho te ha atacado! Tu vida se ha reducido a " + str(objetivo.vida) + "\n")
+        else:
+            logging.info(f"un bicho no encuentra objetivo para atacar")
     def dormir(self, bicho):
         logging.info(f"un bicho no duerme, siempre está listo para atacar")
 
@@ -660,15 +695,22 @@ class Perezoso(Modo):
         else:
             logging.info("El bicho perezoso decidió no moverse esta vez")
     def atacar(self, bicho):
-        logging.info(f"un bicho ataca con poder {bicho.poder // 2}")
+        logging.info(f"un bicho busca objetivo")
+        objetivo = bicho.juego.bichoBuscarObjetivo(bicho)
+        if objetivo:
+            objetivo.vida -= bicho.poder/2
+            logging.info(f"un bicho ataca al personaje, reduciendo su vida a {objetivo.vida}")
+            escribir_lento("¡Un bicho te ha atacado! Tu vida se ha reducido a " + str(objetivo.vida) + "\n")
+        else:
+            logging.info(f"un bicho no encuentra objetivo para atacar")
     def dormir(self, bicho):
         logging.info(f"un bicho duerme mucho, recuperando vida")
         if bicho.vida < 10:
             bicho.vida += 1
 
 class Personaje(Ente):
-    def __init__(self, vida, poder, nombre):
-        super().__init__(vida, poder)
+    def __init__(self, vida, poder, nombre, juego):
+        super().__init__(vida, poder, juego)
         self.nombre = nombre
 
 class Director():
@@ -789,7 +831,7 @@ class LaberintoBuilder:
 
     def fabricarBichos(self, bichos):
         for bicho_info in bichos:
-            bicho = Bicho(bicho_info["vida"], bicho_info["poder"], self.fabricarModo(bicho_info["modo"]))
+            bicho = Bicho(bicho_info["vida"], bicho_info["poder"], self.fabricarModo(bicho_info["modo"]), self.juego)
             self.juego.agregarBicho(bicho, bicho_info["habitacion"])
 
     def fabricarModo(self, modo):
@@ -802,7 +844,7 @@ class LaberintoBuilder:
             return Perezoso()
     
     def fabricarPersonaje(self, personaje_info):
-        personaje = Personaje(personaje_info["vida"], personaje_info["poder"], personaje_info["nombre"])
+        personaje = Personaje(personaje_info["vida"], personaje_info["poder"], personaje_info["nombre"], self.juego)
         self.juego.agregarPersonaje(personaje, personaje_info["habitacion"])
 
 #Juego sigue el patrón Factory Method, siendo el creador
@@ -814,6 +856,66 @@ class Juego:
         self.stopBichos_event = threading.Event()
         self.personaje = None
         self.laberintoPrototipo = None
+        self.observers = []
+    
+    def attachObserver(self, observer):
+        self.observers.append(observer)
+
+    def jugarConsola(self):
+
+        opcion = ""
+        while opcion != "salir":
+            print("----------------------------------------------------------")
+            print(self.personaje.ubicadoEn.recorrer(imprimirElemento))
+
+            print("")
+            escribir_lento("A donde quieres ir?",velocidad=0.03)
+            opcion = input("")
+            print("")
+            if opcion in self.personaje.ubicadoEn.forma.orientaciones:
+                orientacion = self.personaje.ubicadoEn.forma.orientaciones[opcion]
+                elemento = orientacion.getElemento(self.personaje.ubicadoEn.forma)
+                flagCommando = True
+                while flagCommando:
+                    escribir_lento("Te encuentras con " + str(elemento), velocidad=0.03)
+                    print("")
+                    escribir_lento("¿Qué quieres hacer?", velocidad=0.03)
+                    escribir_lento(elemento.listarComandos(), velocidad=0.03)
+                    escribir_lento("Selecciona una acción (1..{})".format(len(elemento.listaComandos())), velocidad=0.03)
+                    accion = input("")
+                    try:
+                        elemento.comandos[int(accion)-1].ejecutar(self.personaje)
+                        flagCommando = False
+                    except (ValueError, IndexError):
+                        escribir_lento("Acción no válida", velocidad=0.03)
+                        print("")
+                        flagCommando = True
+                self.step()
+            else:
+                escribir_lento("Opción no válida", velocidad=0.03)
+            escribir_lento("Pulsa Enter para continuar...", velocidad=0.03)
+            input("")
+            limpiar_pantalla()
+    
+    def obtenerVista(self, vista = "Norte"):
+        if vista in self.personaje.ubicadoEn.forma.orientaciones:
+            orientacion = self.personaje.ubicadoEn.forma.orientaciones[vista]
+            elemento = orientacion.getElemento(self.personaje.ubicadoEn.forma)
+        if isinstance(elemento, Puerta):
+            self.notifyObservers({"commando": "dibujarPuerta", "elemento": null})
+        if isinstance(elemento, Pared):
+            self.notifyObservers({"commando": "dibujarPared", "elemento": null})
+        if isinstance(elemento, Bomba):
+            self.notifyObservers({"commando": "dibujarBomba", "elemento": elemento})
+        if isinstance(elemento, Boton):
+            self.notifyObservers({"commando": "dibujarBoton", "elemento": elemento})
+    
+    def obtenerOrientacionesDisponibles(self):
+        return self.personaje.ubicadoEn.forma.obtenerOrientacionesDisponiblesLista()
+    
+    def notifyObservers(self, mensaje):
+        for observer in self.observers:
+            observer.update(mensaje)
 
     def lanzarBicho(self, bicho, intervalo):
         self.bichosHilos.append(threading.Thread(target=self.lanzarBichoRecursivo, args=(bicho, intervalo, self.stopBichos_event)))
@@ -827,6 +929,11 @@ class Juego:
         while bicho.estaVivo() and not stop_event.is_set():
             bicho.actua()
             time.sleep(intervalo)
+    
+    def bichoBuscarObjetivo(self, bicho):
+        if self.personaje.ubicadoEn == bicho.ubicadoEn:
+            return self.personaje
+        return False
     def crearPrototipoLaberinto(self):
         self.laberintoPrototipo = copy.deepcopy(self.laberinto)
     
@@ -857,6 +964,8 @@ class Juego:
         for bicho in self.bichos:
             if bicho.estaVivo():
                 bicho.actua()
+    def getPersonaje(self):
+        return self.personaje
 
 class JuegoBombas(Juego):
     def fabricarPared(self):
@@ -909,101 +1018,18 @@ class Boton(Decorator):
     def aceptar(self, visitor):
         visitor.visitarBoton(self)
 
-def Jugar(self):
+def load():
     cargarLogging()
-    self.director = Director()
-    self.director.cargarConf("laberintos/Lab2Hab.json")
-    self.director.iniBuilder()
-    self.director.construirLaberinto()
+    director = Director()
+    director.cargarConf("src\laberintos\Lab2Hab.json")
+    director.iniBuilder()
+    director.construirLaberinto()
+    return director
 
-    def imprimirElemento(elemento):
-        print(elemento)
-    def funcionVacia(elemento):
-        pass
-    director.builder.laberinto.recorrer(imprimirElemento)
 
-    #print("Lanzado bichos...")
-    #director.builder.juego.lanzarBicho(director.builder.juego.bichos[1], 2)
-
-    #def abrir_monitor_logs():
-    #    # Usamos powershell para hacer un "tail" del archivo log
-    #    comando = 'Get-Content -Path "juego.log" -Wait'
-    #    # Abrimos una ventana nueva de PowerShell
-    #    subprocess.Popen(['start', 'powershell', '-NoExit', '-Command', comando], shell=True)
-
-    #abrir_monitor_logs()
-
-    #input("Presiona Enter para detener los bichos...")
-    #Director.builder.juego.detenerBichos()
-
-cargarLogging()
-director = Director()
-director.cargarConf("src\laberintos\Lab2Hab.json")
-director.iniBuilder()
-director.construirLaberinto()
-
-def funcionVacia(elemento):
-    pass
-
-#director.builder.laberinto.recorrer(imprimirElemento)
-
-import time
-import sys
-import os
-import platform
-
-def escribir_lento(texto, velocidad=0.03):
-    if isinstance(texto, list):
-        textoini = texto
-        texto = ""
-        for linea in textoini:
-            texto += str(linea) + "\n"
-    for letra in texto:
-        # sys.stdout.write no añade un salto de línea automático como print
-        sys.stdout.write(letra)
-        sys.stdout.flush() # Fuerza a la terminal a mostrar la letra YA
-        time.sleep(velocidad) # Pausa en segundos (0.05 = 50 milisegundos)
-    print() # Al terminar, hace el salto de línea
-
-def limpiar_pantalla():
-    # platform.system() devuelve 'Windows', 'Linux' o 'Darwin' (macOS)
-    if platform.system() == "Windows":
-        os.system('cls')
-    else:
-        os.system('clear')
-
-def imprimirElemento(elemento):
-    escribir_lento(elemento.__str__(), velocidad=0.03)
-opcion = ""
-while opcion != "salir":
-    print("----------------------------------------------------------")
-    print(director.builder.juego.personaje.ubicadoEn.recorrer(imprimirElemento))
-
-    print("")
-    escribir_lento("A donde quieres ir?",velocidad=0.03)
-    opcion = input("")
-    print("")
-    if opcion in director.builder.juego.personaje.ubicadoEn.forma.orientaciones:
-        orientacion = director.builder.juego.personaje.ubicadoEn.forma.orientaciones[opcion]
-        elemento = orientacion.getElemento(director.builder.juego.personaje.ubicadoEn.forma)
-        flagCommando = True
-        while flagCommando:
-            escribir_lento("Te encuentras con " + str(elemento), velocidad=0.03)
-            print("")
-            escribir_lento("¿Qué quieres hacer?", velocidad=0.03)
-            escribir_lento(elemento.listarComandos(), velocidad=0.03)
-            escribir_lento("Selecciona una acción (1..{})".format(len(elemento.listaComandos())), velocidad=0.03)
-            accion = input("")
-            try:
-                elemento.comandos[int(accion)-1].ejecutar(director.builder.juego.personaje)
-                flagCommando = False
-            except (ValueError, IndexError):
-                escribir_lento("Acción no válida", velocidad=0.03)
-                print("")
-                flagCommando = True
-        director.builder.juego.step()
-    else:
-        escribir_lento("Opción no válida", velocidad=0.03)
-    escribir_lento("Pulsa Enter para continuar...", velocidad=0.03)
-    input("")
-    limpiar_pantalla()
+#cargarLogging()
+#director = Director()
+#director.cargarConf("src\laberintos\Lab2Hab.json")
+#director.iniBuilder()
+#director.construirLaberinto()
+#director.builder.juego.jugarConsola()
