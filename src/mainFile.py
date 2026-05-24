@@ -939,6 +939,10 @@ class Juego:
 
     def jugarConsola(self):
         self.console = True
+        escribir_lento("Bienvenido al juego del laberinto! Para ganar debes acabar con todos los bichos")
+        escribir_lento("Pero si tu vida cae a 0 habrás perdido")
+        escribir_lento("Disfruta de tu partida! presiona enter para empezar...")
+        input("")
         opcion = ""
         while opcion != "Salir":
             print("----------------------------------------------------------")
