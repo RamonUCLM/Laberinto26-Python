@@ -1,1 +1,36 @@
 INFO:root:Un Personaje Heroe entra en la habitación: 1
+INFO:root:Un Personaje Heroe pasa por la puerta hacia la habitación 2
+INFO:root:Un Personaje Heroe entra en la habitación: 2
+INFO:root:un bicho se mueve agresivamente hacia la orientación Este
+INFO:root:Un Bicho pasa por la puerta hacia la habitación 4
+INFO:root:Un Bicho entra en la habitación: 4
+INFO:root:un bicho busca objetivo
+INFO:root:un bicho no encuentra objetivo para atacar
+INFO:root:un bicho no duerme, siempre está listo para atacar
+INFO:root:un bicho se mueve perezosamente hacia la orientación Oeste
+INFO:root:Un Bicho pasa por la puerta hacia la habitación 1
+INFO:root:Un Bicho entra en la habitación: 1
+INFO:root:un bicho busca objetivo
+INFO:root:un bicho no encuentra objetivo para atacar
+INFO:root:un bicho duerme mucho, recuperando vida
+INFO:root:El bicho perezoso decidió no moverse esta vez
+INFO:root:un bicho busca objetivo
+INFO:root:un bicho no encuentra objetivo para atacar
+INFO:root:un bicho duerme mucho, recuperando vida
+INFO:root:un bicho se mueve agresivamente hacia la orientación Sur
+INFO:root:Un Bicho choca contra una pared en la habitación: 4
+INFO:root:un bicho busca objetivo
+INFO:root:un bicho no encuentra objetivo para atacar
+INFO:root:un bicho no duerme, siempre está listo para atacar
+INFO:root:un bicho se mueve perezosamente hacia la orientación Sur
+INFO:root:Un Bicho pasa por la puerta hacia la habitación 2
+INFO:root:Un Bicho entra en la habitación: 2
+INFO:root:un bicho busca objetivo
+INFO:root:un bicho ataca al personaje, reduciendo su vida a 147.5
+INFO:root:un bicho duerme mucho, recuperando vida
+INFO:root:un bicho se mueve perezosamente hacia la orientación Norte
+INFO:root:Un Bicho pasa por la puerta hacia la habitación 3
+INFO:root:Un Bicho entra en la habitación: 3
+INFO:root:un bicho busca objetivo
+INFO:root:un bicho no encuentra objetivo para atacar
+INFO:root:un bicho duerme mucho, recuperando vida

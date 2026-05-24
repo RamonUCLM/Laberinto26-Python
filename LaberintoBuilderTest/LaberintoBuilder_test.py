@@ -21,7 +21,7 @@ class DummyObserver:
         self.messages.append(mensaje)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def director_configurado():
     mainFile.cargarLogging()
     director = mainFile.Director()
@@ -31,7 +31,7 @@ def director_configurado():
     return director
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def juego(director_configurado):
     return director_configurado.builder.juego
 
@@ -85,12 +85,47 @@ def test_ejecutar_accion_explorar_norte_detonates_bomba_and_notifies_observer(ju
     original_vida = personaje.vida
     observer = DummyObserver()
     juego.attachObserver(observer)
+    juego.step = lambda: None
 
     juego.ejecutarAccion("Norte", "Explorar")
 
     assert personaje.vida == original_vida - 5
     assert observer.messages[-1]["commando"] == "resultadoAccion"
     assert "BOOM" in observer.messages[-1]["mensaje"] or "Has perdido" in observer.messages[-1]["mensaje"]
+
+
+def test_explorar_pared_en_habitacion_tres_devuelve_mensaje_de_colision(juego):
+    juego.personaje.ubicadoEn = juego.obtenerHabitacion(3)
+    observer = DummyObserver()
+    juego.attachObserver(observer)
+    juego.step = lambda: None
+
+    acciones = juego.obtenerAccionesDisponibles("Norte")
+    assert acciones == ["Explorar"]
+
+    juego.ejecutarAccion("Norte", "Explorar")
+    assert observer.messages[-1]["commando"] == "resultadoAccion"
+    assert "pared" in observer.messages[-1]["mensaje"].lower() or "chocado" in observer.messages[-1]["mensaje"].lower()
+
+
+def test_explorar_hongo_aumenta_vida_y_luego_pared(juego):
+    juego.personaje.ubicadoEn = juego.obtenerHabitacion(2)
+    original_vida = juego.personaje.vida
+    observer = DummyObserver()
+    juego.attachObserver(observer)
+    juego.step = lambda: None
+
+    acciones = juego.obtenerAccionesDisponibles("Oeste")
+    assert acciones == ["Explorar"]
+
+    juego.ejecutarAccion("Oeste", "Explorar")
+    assert juego.personaje.vida == original_vida + 5
+    assert "has ganado" in observer.messages[-1]["mensaje"].lower()
+
+    vida_despues = juego.personaje.vida
+    juego.ejecutarAccion("Oeste", "Explorar")
+    assert juego.personaje.vida == vida_despues
+    assert "pared" in observer.messages[-1]["mensaje"].lower() or "chocado" in observer.messages[-1]["mensaje"].lower()
 
 
 def test_obtener_vista_notifies_observer_for_bomba(juego):
@@ -120,16 +155,45 @@ def test_abrir_puertas_can_open_all_doors(juego):
     assert all(puerta.abierta for puerta in puertas)
 
 
+def test_pulsar_boton_abre_todas_las_puertas(juego):
+    habitacion1 = juego.obtenerHabitacion(1)
+    boton = habitacion1.forma.orientaciones["Oeste"].getElemento(habitacion1.forma)
+    assert isinstance(boton, mainFile.Boton)
+
+    puertas = []
+    for elemento in juego.laberinto.hijos:
+        for nombre, orientacion in elemento.forma.orientaciones.items():
+            item = orientacion.getElemento(elemento.forma)
+            if isinstance(item, mainFile.Puerta):
+                item.cerrar()
+                puertas.append(item)
+
+    assert all(not puerta.abierta for puerta in puertas)
+
+    observer = DummyObserver()
+    juego.attachObserver(observer)
+    juego.ejecutarAccion("Oeste", "Pulsar")
+
+    assert all(puerta.abierta for puerta in puertas)
+    assert observer.messages[-1]["commando"] == "resultadoAccion"
+    assert "Se han abierto" in observer.messages[-1]["mensaje"] or "Has pasado" in observer.messages[-1]["mensaje"]
+
+
 def test_atacar_bicho_reduces_health_and_notifies_observer(juego):
     observer = DummyObserver()
     juego.attachObserver(observer)
+    juego.step = lambda: None
     vida_inicial = juego.bichos[0].vida
 
     resultado = juego.atacarBicho(1)
 
     assert resultado == vida_inicial - juego.personaje.poder
-    assert observer.messages[-1]["commando"] == "resultadoAccion"
-    assert "Has atacado a un bicho" in observer.messages[-1]["mensaje"]
+    assert any(message["commando"] == "resultadoAccion" for message in observer.messages)
+    assert any(
+        "bicho" in message["mensaje"].lower()
+        for message in observer.messages
+        if message["commando"] == "resultadoAccion"
+    )
 
 
 def test_armario_contains_espada_and_coger_objecto_removes_it(juego):

@@ -168,7 +168,7 @@ class Norte(Orientacion):
     @staticmethod
     def ponerElemento(forma, elemento):
         if forma.norte:
-            print(f"Sustituyendo un elemento {forma.norte} por {elemento} en la orientación Norte")
+            #print(f"Sustituyendo un elemento {forma.norte} por {elemento} en la orientación Norte")
             forma.norte = elemento
         else:
             forma.norte = elemento
@@ -198,7 +198,7 @@ class Sur(Orientacion):
     @staticmethod
     def ponerElemento(forma, elemento):
         if forma.sur:
-            print(f"Sustituyendo un elemento {forma.sur} por {elemento} en la orientación Sur")
+            #print(f"Sustituyendo un elemento {forma.sur} por {elemento} en la orientación Sur")
             forma.sur = elemento
         else:
             forma.sur = elemento
@@ -228,7 +228,7 @@ class Este(Orientacion):
     @staticmethod
     def ponerElemento(forma, elemento):
         if forma.este:
-            print(f"Sustituyendo un elemento {forma.este} por {elemento} en la orientación Este")
+            #print(f"Sustituyendo un elemento {forma.este} por {elemento} en la orientación Este")
             forma.este = elemento
         else:
             forma.este = elemento
@@ -258,7 +258,7 @@ class Oeste(Orientacion):
     @staticmethod
     def ponerElemento(forma, elemento):
         if forma.oeste:
-            print(f"Sustituyendo un elemento {forma.oeste} por {elemento} en la orientación Oeste")
+            #print(f"Sustituyendo un elemento {forma.oeste} por {elemento} en la orientación Oeste")
             forma.oeste = elemento
         else:
             forma.oeste = elemento
@@ -288,7 +288,7 @@ class Noreste(Orientacion):
     @staticmethod
     def ponerElemento(forma, elemento):
         if forma.noreste:
-            print(f"Sustituyendo un elemento {forma.noreste} por {elemento} en la orientación Noreste")
+            #print(f"Sustituyendo un elemento {forma.noreste} por {elemento} en la orientación Noreste")
             forma.noreste = elemento
         elif isinstance(forma, Rombo):
             forma.noreste = elemento
@@ -318,7 +318,7 @@ class Noroeste(Orientacion):
     @staticmethod
     def ponerElemento(forma, elemento):
         if forma.noroeste:
-            print(f"Sustituyendo un elemento {forma.noroeste} por {elemento} en la orientación Noroeste")
+            #print(f"Sustituyendo un elemento {forma.noroeste} por {elemento} en la orientación Noroeste")
             forma.noroeste = elemento
         elif isinstance(forma, Rombo):
             forma.noreste = elemento
@@ -348,7 +348,7 @@ class Sureste(Orientacion):
     @staticmethod
     def ponerElemento(self,forma, elemento):
         if forma.sureste:
-            print(f"Sustituyendo un elemento {forma.sureste} por {elemento} en la orientación Sureste")
+            #print(f"Sustituyendo un elemento {forma.sureste} por {elemento} en la orientación Sureste")
             forma.sureste = elemento
         elif isinstance(forma, Rombo):
             forma.sureste = elemento
@@ -378,7 +378,7 @@ class Suroeste(Orientacion):
     @staticmethod
     def ponerElemento(forma, elemento):
         if forma.suroeste:
-            print(f"Sustituyendo un elemento {forma.suroeste} por {elemento} en la orientación Suroeste")
+            #print(f"Sustituyendo un elemento {forma.suroeste} por {elemento} en la orientación Suroeste")
             forma.suroeste = elemento
         elif isinstance(forma, Rombo):
             forma.suroeste = elemento
@@ -939,10 +939,12 @@ class Juego:
 
     def jugarConsola(self):
         self.console = True
+        limpiar_pantalla()
         escribir_lento("Bienvenido al juego del laberinto! Para ganar debes acabar con todos los bichos")
         escribir_lento("Pero si tu vida cae a 0 habrás perdido")
         escribir_lento("Disfruta de tu partida! presiona enter para empezar...")
         input("")
+        limpiar_pantalla()
         opcion = ""
         while opcion != "Salir":
             print("----------------------------------------------------------")
@@ -1264,10 +1266,11 @@ def load():
     director.construirLaberinto()
     return director
 
-if consola:
-    cargarLogging()
-    director = Director()
-    director.cargarConf("src\laberintos\Lab2Hab.json")
-    director.iniBuilder()
-    director.construirLaberinto()
-    director.builder.juego.jugarConsola()
+if __name__ == "__main__":
+    if consola:
+        cargarLogging()
+        director = Director()
+        director.cargarConf("src\laberintos\Lab2Hab.json")
+        director.iniBuilder()
+        director.construirLaberinto()
+        director.builder.juego.jugarConsola()
