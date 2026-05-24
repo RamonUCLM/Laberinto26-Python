@@ -12,6 +12,9 @@ import sys
 import os
 import platform
 
+#Cambiar este parámetro si quieres jugar en la consola o en la GUI
+consola = True
+
 def escribir_lento(texto, velocidad=0.03):
     if isinstance(texto, list):
         textoini = texto
@@ -49,24 +52,61 @@ class Comando(ABC):
 class Abrir(Comando):
     def ejecutar(self, unEnte):
         self.receptor.setAbierta(True)
+        return "Puerta abierta"
     def __str__(self):
         return f"Abrir"
 class Cerrar(Comando):
     def ejecutar(self, unEnte):
         self.receptor.setAbierta(False)
+        return "Puerta cerrada"
     def __str__(self):
         return f"Cerrar"
 class entrar(Comando):
     def ejecutar(self, unEnte):
         self.result = self.receptor.entrar(unEnte)
+        return self.result
     def __str__(self):
         return f"Entrar"
 class explorar(Comando):
     def ejecutar(self, unEnte):
         self.result = self.receptor.entrar(unEnte)
+        return self.result
     def __str__(self):
         return f"Explorar"
+class pulsar(Comando):
+    def ejecutar(self, unEnte):
+        self.result = self.receptor.entrar(unEnte)
+        return self.result
+    def __str__(self):
+        return f"Pulsar"
 
+class equiparArma(Comando):
+    def ejecutar(self, arma):
+        if arma.equipada == False:
+            arma.equipada = True
+            self.receptor.poder += arma.poder
+            return "Te has equipado el arma"
+        return "Ya está equipada"
+    def __str__(self):
+        return "Equipar"
+
+class desEquiparArma(Comando):
+    def ejecutar(self, arma):
+        if arma.equipada == True:
+            arma.equipada = False
+            self.receptor.poder -= arma.poder
+            return "Te has desequipado el arma"
+        return "Ya está desequipada"
+    def __str__(self):
+        return "Desequipar"
+
+class cogerObjeto(Comando):
+    def ejecutar(self, unEnte, orientacion):
+        objeto = self.receptor.forma.orientaciones[orientacion].getElemento(self.receptor.forma)
+        self.receptor.ponerEnOrientacion(orientacion, None)
+        return objeto
+    def __str__(self):
+        return "Coger un Objeto"
 #
 class ElementoMapa(ABC):
     def __init__(self, id):
@@ -146,7 +186,8 @@ class Norte(Orientacion):
             forma.norte.recorrer(unBloque)
     @staticmethod
     def aceptar(visitor, forma):
-        forma.norte.aceptar(visitor)
+        if forma.norte:
+            forma.norte.aceptar(visitor)
 
 class Sur(Orientacion):
     def __new__(cls, *args, **kwargs):
@@ -175,7 +216,8 @@ class Sur(Orientacion):
             forma.sur.recorrer(unBloque)
     @staticmethod
     def aceptar(visitor, forma):
-        forma.sur.aceptar(visitor)
+        if forma.sur:
+            forma.sur.aceptar(visitor)
 
 class Este(Orientacion):
     def __new__(cls, *args, **kwargs):
@@ -204,7 +246,8 @@ class Este(Orientacion):
             forma.este.recorrer(unBloque)
     @staticmethod
     def aceptar(visitor, forma):
-        forma.este.aceptar(visitor)
+        if forma.este:
+            forma.este.aceptar(visitor)
 
 class Oeste(Orientacion):
     def __new__(cls, *args, **kwargs):
@@ -233,7 +276,8 @@ class Oeste(Orientacion):
             forma.oeste.recorrer(unBloque)
     @staticmethod
     def aceptar(visitor, forma):
-        forma.oeste.aceptar(visitor)
+        if forma.oeste:
+            forma.oeste.aceptar(visitor)
 
 class Noreste(Orientacion):
     def __new__(cls, *args, **kwargs):
@@ -466,7 +510,7 @@ class Armario(Contenedor):
     def __init__(self, id,forma=Cuadrado({})):
         super().__init__(id, forma)
         self.comandos = []
-        self.abierto = False
+        self.abierto = True
     def entrar(self, unEnte):
         if isinstance(unEnte, Personaje):
             print("Has entrado al armario: ", self.id)
@@ -482,7 +526,7 @@ class Armario(Contenedor):
             hijo.recorrer(unBloque)
         self.forma.recorrer(self, unBloque)
     def __str__(self):
-        cadena = f"Armario {self.id} con forma {self.forma}"
+        cadena = f"Un armario"
         return cadena
     def aceptar(self, visitor):
         visitor.visitarArmario(self)
@@ -490,6 +534,8 @@ class Armario(Contenedor):
             hijo.aceptar(visitor)
         for orientacion in self.forma.orientaciones:
             self.forma.orientaciones[orientacion].aceptar(visitor, self.forma)
+    def listaComandos(self):
+        return self.comandos
 
 #Habitación es un composite también.
 class Habitacion(Contenedor):
@@ -497,7 +543,6 @@ class Habitacion(Contenedor):
         super().__init__(id, forma)
     def entrar(self, unEnte):
         if isinstance(unEnte, Personaje):
-            print("Has entrado a la habitación: ", self.id)
             logging.info(f"Un {unEnte} entra en la habitación: {self.id}")
         else:
             logging.info(f"Un {unEnte} entra en la habitación: {self.id}")
@@ -510,7 +555,7 @@ class Habitacion(Contenedor):
         self.forma.recorrer(self, unBloque)
 
     def __str__(self):
-        cadena = f"Habitación {self.id} con forma {self.forma}"
+        cadena = f"Una habitación"
         return cadena
     def aceptar(self, visitor):
         visitor.visitarHabitacion(self)
@@ -528,6 +573,18 @@ class Hoja(ElementoMapa):
         unBloque(self)
     def listaComandos(self):
         return self.comandos
+
+class Espada(Hoja):
+    def __init__(self):
+        super().__init__()
+        self.poder = 20
+        self.equipada = False
+    def __str__(self):
+        return "Espada"
+    def entrar(self):
+        return self
+    def aceptar(self, visitor):
+        visitor.visitarEspada(self)
 
         
 class Tunel(Hoja):
@@ -551,6 +608,7 @@ class Pared(Hoja):
     def entrar(self, unEnte):
         if isinstance(unEnte, Personaje):
             print("Has chocado contra una pared en la habitación: ", unEnte.ubicadoEn.id)
+            return "Has chocado contra una pared"
             logging.info(f"Un {unEnte} choca contra una pared en la habitación: {unEnte.ubicadoEn.id}")
         else:
             logging.info(f"Un {unEnte} choca contra una pared en la habitación: {unEnte.ubicadoEn.id}")
@@ -575,22 +633,20 @@ class Puerta(Hoja):
         if self.abierta:
             if  unEnte.ubicadoEn == self.lado1:
                 if isinstance(unEnte, Personaje):
-                    print(f"Has pasado por la puerta hacia la habitación {self.lado2.id}")
                     logging.info(f"Un {unEnte} pasa por la puerta hacia la habitación {self.lado2.id}")
                 else:
                     logging.info(f"Un {unEnte} pasa por la puerta hacia la habitación {self.lado2.id}")
                 self.lado2.entrar(unEnte)
                 unEnte.ubicadoEn = self.lado2
-                return True
+                return "Has pasado por la puerta"
             elif unEnte.ubicadoEn == self.lado2:
                 if isinstance(unEnte, Personaje):
-                    print(f"Has pasado por la puerta hacia la habitación {self.lado1.id}")
                     logging.info(f"Un {unEnte} pasa por la puerta hacia la habitación {self.lado1.id}")
                 else:                    
                     logging.info(f"Un {unEnte} pasa por la puerta hacia la habitación {self.lado1.id}")
                 self.lado1.entrar(unEnte)
                 unEnte.ubicadoEn = self.lado1
-                return True
+                return "Has pasado por la puerta"
             else:
                 raise ValueError("El origen no es válido para esta puerta")
         else:
@@ -599,7 +655,7 @@ class Puerta(Hoja):
                 logging.info(f"Un {unEnte} intenta pasar por una puerta cerrada entre {self.lado1.id} y {self.lado2.id}")
             else:
                 logging.info(f"Un {unEnte} intenta pasar por una puerta cerrada entre {self.lado1.id} y {self.lado2.id}")
-            return False
+            return "La puerta está cerrada, no puedes pasar"
     def abrir(self):
         self.abierta = True
     def cerrar(self):
@@ -608,7 +664,7 @@ class Puerta(Hoja):
         visitor.visitarPuerta(self)
     def __str__(self):
         estado = "abierta" if self.abierta else "cerrada"
-        return f"Puerta {estado} entre {self.lado1.id} y {self.lado2.id}"
+        return f"Una puerta"
 
 class Laberinto(Contenedor):
     def __init__(self, id, forma=None):
@@ -680,7 +736,10 @@ class Agresivo(Modo):
         if objetivo:
             objetivo.vida -= bicho.poder
             logging.info(f"un bicho ataca al personaje, reduciendo su vida a {objetivo.vida}")
-            escribir_lento("¡Un bicho te ha atacado! Tu vida se ha reducido a " + str(objetivo.vida) + "\n")
+            mensaje = "¡Un bicho te ha atacado!"
+            bicho.juego.notifyObservers({"commando": "resultadoAccion", "mensaje": mensaje})
+            if bicho.juego.console:
+                escribir_lento("¡Un bicho te ha atacado! Tu vida se ha reducido a " + str(objetivo.vida) + "\n")
         else:
             logging.info(f"un bicho no encuentra objetivo para atacar")
     def dormir(self, bicho):
@@ -700,7 +759,10 @@ class Perezoso(Modo):
         if objetivo:
             objetivo.vida -= bicho.poder/2
             logging.info(f"un bicho ataca al personaje, reduciendo su vida a {objetivo.vida}")
-            escribir_lento("¡Un bicho te ha atacado! Tu vida se ha reducido a " + str(objetivo.vida) + "\n")
+            mensaje = "¡Un bicho te ha atacado!"
+            bicho.juego.notifyObservers({"commando": "resultadoAccion", "mensaje": mensaje})
+            if bicho.juego.console:
+                escribir_lento("¡Un bicho te ha atacado! Tu vida se ha reducido a " + str(objetivo.vida) + "\n")
         else:
             logging.info(f"un bicho no encuentra objetivo para atacar")
     def dormir(self, bicho):
@@ -712,7 +774,9 @@ class Personaje(Ente):
     def __init__(self, vida, poder, nombre, juego):
         super().__init__(vida, poder, juego)
         self.nombre = nombre
-
+        self.inventario = []
+    def __str__(self):
+        return f"Personaje {self.nombre}"
 class Director():
     def __init__(self):
         self.builder = None
@@ -752,7 +816,7 @@ class Director():
         if elemento["tipo"] == "bomba":
             self.builder.fabricarBomba(idp, elemento["posicion"])
         if elemento["tipo"] == "armario":
-            self.builder.fabricarArmario(idp, elemento["posicion"])
+            self.builder.fabricarArmario(idp, elemento["posicion"], elemento["objetos"])
         if elemento["tipo"] == "tunel":
             self.builder.fabricarTunel(idp, elemento["posicion"])
         if elemento["tipo"] == "hongo":
@@ -812,17 +876,28 @@ class LaberintoBuilder:
             habitacion2.forma.ponerElemento(habitacion2, puerta_info[3], puerta)
     def fabricarHongo(self, idp, orientacion):
         hongo = Hongo(self.fabricarPared())
+        hongo.comandos.append(explorar(hongo))
         habitacion = self.laberinto.obetenerHabitacion(idp)
         habitacion.forma.ponerElemento(habitacion, orientacion, hongo)
     def fabricarBoton(self, idp, orientacion):
         boton = Boton(self.fabricarPared(),self.laberinto)
+        boton.comandos.append(pulsar(boton))
         habitacion = self.laberinto.obetenerHabitacion(idp)
         habitacion.forma.ponerElemento(habitacion, orientacion, boton)
-    def fabricarArmario(self, idp, orientacion):
+    def fabricarArmario(self, idp, orientacion, objetos):
         armario = Armario(0)
-        armario.comandos.append(Abrir(armario))
+        armario.comandos.append(cogerObjeto(armario))
+        for objeto in objetos:
+            if objeto["tipo"] == "Espada":
+                espada = self.fabricarEspada()
+                armario.ponerEnOrientacion(objeto["posicion"], espada)
         habitacion = self.laberinto.obetenerHabitacion(idp)
         habitacion.forma.ponerElemento(habitacion, orientacion, armario)
+    def fabricarEspada(self):
+        espada  = Espada()
+        espada.comandos.append(equiparArma(espada))
+        espada.comandos.append(desEquiparArma(espada))
+        return espada
     
     def fabricarTunel(self, idp, orientacion):
         tunel = Tunel()
@@ -857,61 +932,198 @@ class Juego:
         self.personaje = None
         self.laberintoPrototipo = None
         self.observers = []
+        self.console = False
     
     def attachObserver(self, observer):
         self.observers.append(observer)
 
     def jugarConsola(self):
-
+        self.console = True
         opcion = ""
-        while opcion != "salir":
+        while opcion != "Salir":
             print("----------------------------------------------------------")
             print(self.personaje.ubicadoEn.recorrer(imprimirElemento))
 
             print("")
-            escribir_lento("A donde quieres ir?",velocidad=0.03)
+            escribir_lento("A donde quieres ir? o escribe Inventario para ver tu inventario",velocidad=0.03)
             opcion = input("")
+            opcion = opcion[0].capitalize() + opcion[1:].lower()
             print("")
-            if opcion in self.personaje.ubicadoEn.forma.orientaciones:
-                orientacion = self.personaje.ubicadoEn.forma.orientaciones[opcion]
-                elemento = orientacion.getElemento(self.personaje.ubicadoEn.forma)
-                flagCommando = True
-                while flagCommando:
-                    escribir_lento("Te encuentras con " + str(elemento), velocidad=0.03)
-                    print("")
-                    escribir_lento("¿Qué quieres hacer?", velocidad=0.03)
-                    escribir_lento(elemento.listarComandos(), velocidad=0.03)
-                    escribir_lento("Selecciona una acción (1..{})".format(len(elemento.listaComandos())), velocidad=0.03)
-                    accion = input("")
-                    try:
-                        elemento.comandos[int(accion)-1].ejecutar(self.personaje)
-                        flagCommando = False
-                    except (ValueError, IndexError):
-                        escribir_lento("Acción no válida", velocidad=0.03)
+            if opcion in self.personaje.ubicadoEn.forma.orientaciones or opcion == "Inventario":
+                if opcion == "Inventario":
+                    escribir_lento("Nombre: " + self.personaje.nombre)
+                    escribir_lento("Vida: " + str(self.personaje.vida))
+                    inventario = ""
+                    for invent in self.personaje.inventario:
+                        inventario += str(invent) + " "
+                    escribir_lento("Inventario: " + inventario)
+                    escribir_lento("Deseas equiparte o desequiparte un Objeto? (Sí - No)")
+                    response = input("")
+                    response = response[0].capitalize() + response[1:].lower()
+                    if response == "Sí":
+                        escribir_lento("Que objeto deseas equiparte?")
+                        response = input("")
+                        response = response[0].capitalize() + response[1:].lower()
+                        self.objetoSelec = None
+                        self.flagObjeto = False
+                        for objeto in self.personaje.inventario:
+                            if objeto.__str__() == response:
+                                self.objetoSelec = objeto
+                                self.flagObjeto = True
+                        if not self.flagObjeto:
+                            escribir_lento("Objeto no encontrado", velocidad=0.03)
+                        else:
+                            escribir_lento("¿Qué quieres hacer?", velocidad=0.03)
+                            escribir_lento(objeto.listarComandos(), velocidad=0.03)
+                            escribir_lento("Selecciona una acción (1..{})".format(len(objeto.listaComandos())), velocidad=0.03)
+                            accion = input("")
+                            try:   
+                                comando = objeto.comandos[int(accion)-1]
+                                comando.ejecutar(objeto)
+                            except (ValueError, IndexError, KeyError):
+                                escribir_lento("Acción no válida", velocidad=0.03)
+                                print("")
+                                
+                else:
+                    orientacion = self.personaje.ubicadoEn.forma.orientaciones[opcion]
+                    elemento = orientacion.getElemento(self.personaje.ubicadoEn.forma)
+                    flagCommando = True
+                    while flagCommando:
+                        escribir_lento("Te encuentras con " + str(elemento), velocidad=0.03)
                         print("")
-                        flagCommando = True
-                self.step()
+                        escribir_lento("¿Qué quieres hacer?", velocidad=0.03)
+                        escribir_lento(elemento.listarComandos(), velocidad=0.03)
+                        escribir_lento("Selecciona una acción (1..{})".format(len(elemento.listaComandos())), velocidad=0.03)
+                        accion = input("")
+                        try:   
+                            comando = elemento.comandos[int(accion)-1]
+                            if isinstance(elemento,Armario):
+                                escribir_lento("De donde quieres coger el objeto? (Orientacion)", velocidad=0.03)
+                                ori = input("")
+                                ori = ori[0].capitalize() + ori[1:].lower()
+                                objeto = comando.ejecutar(self.personaje, ori)
+                                self.personaje.inventario.append(objeto)
+                                escribir_lento("Objeto recogido")
+                            else:
+                                comando.ejecutar(self.personaje)
+                            flagCommando = False
+                        except (ValueError, IndexError, KeyError):
+                            escribir_lento("Acción no válida", velocidad=0.03)
+                            print("")
+                            flagCommando = True
+                    self.step()
             else:
                 escribir_lento("Opción no válida", velocidad=0.03)
+            if self.jugadorBuscarObjetivo():
+                escribir_lento("Pulsa Enter para continuar...", velocidad=0.03)
+                input("")
+                limpiar_pantalla()
+                escribir_lento("¡Cuidado! Hay un bicho en la habitación, Ataca o Huye", velocidad=0.03)
+                opcion = input("")
+                opcion = opcion[0].capitalize() + opcion[1:].lower()
+                if opcion.startswith("Ataca"):
+                    bichos = self.jugadorBuscarObjetivo()
+                    if len(bichos) > 1:
+                        flagBicho = True
+                        while flagBicho:
+                            escribir_lento("Hay varios bichos, ¿a cuál quieres atacar? (1..{})".format(len(bichos)), velocidad=0.03)
+                            for i in range(len(bichos)):
+                                escribir_lento("Bicho {}: Vida {}".format(i+1, bichos[i].vida), velocidad=0.03)
+                            opcion = input("")
+                            try:
+                                bicho_seleccionado = int(opcion)-1
+                                if bicho_seleccionado < 0 or bicho_seleccionado >= len(bichos):
+                                    escribir_lento("Opción no válida", velocidad=0.03)
+                                else:
+                                    escribir_lento(self.atacarBicho(bichos[bicho_seleccionado]))
+                                    flagBicho = False
+                            except ValueError:
+                                escribir_lento("Opción no válida", velocidad=0.03)
+                    else:
+                        escribir_lento(self.atacarBicho(bichos[0]) + f"su vida ahora es {bichos[0].vida}")
+            if not self.personaje.estaVivo():
+                escribir_lento("FIN DE LA PARTIDA! el personaje ha perecido")
+                break
+            if self.bichosMuertos():
+                limpiar_pantalla()
+                print("")
+                print("----------------------------------------------------")
+                escribir_lento("ENHORABUENA! Has ganadado el juego!")
+                print("----------------------------------------------------")
+                print("")
             escribir_lento("Pulsa Enter para continuar...", velocidad=0.03)
             input("")
             limpiar_pantalla()
+    
+    def bichosMuertos(self):
+        flagbicho = True
+        for bicho in self.bichos:
+            if bicho.estaVivo():
+                flagbicho = False
+        return flagbicho
     
     def obtenerVista(self, vista = "Norte"):
         if vista in self.personaje.ubicadoEn.forma.orientaciones:
             orientacion = self.personaje.ubicadoEn.forma.orientaciones[vista]
             elemento = orientacion.getElemento(self.personaje.ubicadoEn.forma)
         if isinstance(elemento, Puerta):
-            self.notifyObservers({"commando": "dibujarPuerta", "elemento": null})
+            self.notifyObservers({"commando": "dibujarPuerta", "elemento": None})
         if isinstance(elemento, Pared):
-            self.notifyObservers({"commando": "dibujarPared", "elemento": null})
+            self.notifyObservers({"commando": "dibujarPared", "elemento": None})
         if isinstance(elemento, Bomba):
             self.notifyObservers({"commando": "dibujarBomba", "elemento": elemento})
         if isinstance(elemento, Boton):
             self.notifyObservers({"commando": "dibujarBoton", "elemento": elemento})
+        if isinstance(elemento, Hongo):
+            self.notifyObservers({"commando": "dibujarHongo", "elemento": elemento})
     
     def obtenerOrientacionesDisponibles(self):
         return self.personaje.ubicadoEn.forma.obtenerOrientacionesDisponiblesLista()
+    
+    def obtenerAccionesDisponibles(self, mirando):
+        if mirando in self.personaje.ubicadoEn.forma.orientaciones:
+            orientacion = self.personaje.ubicadoEn.forma.orientaciones[mirando]
+            elemento = orientacion.getElemento(self.personaje.ubicadoEn.forma)
+            lista = []
+            for comando in elemento.comandos:
+                lista.append(comando.__str__())
+            return lista
+        else:
+            print("Orientación no válida")
+            return []
+    
+    def ejecutarAccion(self, mirando, accion):
+        if mirando in self.personaje.ubicadoEn.forma.orientaciones:
+            orientacion = self.personaje.ubicadoEn.forma.orientaciones[mirando]
+            elemento = orientacion.getElemento(self.personaje.ubicadoEn.forma)
+            for comando in elemento.comandos:
+                if accion == comando.__str__():
+                    resultado =comando.ejecutar(self.personaje)
+            self.step()
+        else:
+            resultado = "Orientación no válida"
+        self.notifyObservers({"commando": "resultadoAccion", "mensaje": resultado})
+    
+    def atacarBicho(self, bicho):
+        if self.console:
+            if bicho.estaVivo():
+                bicho.vida -= self.personaje.poder
+                logging.info(f"El personaje ataca a un bicho, reduciendo su vida a {bicho.vida}")
+                return "¡Has atacado a un bicho!"
+            else:
+                return "El bicho ya está muerto"
+        bicho = self.bichos[bicho-1]
+        if bicho.estaVivo():
+            bicho.vida -= self.personaje.poder
+            logging.info(f"El personaje ataca a un bicho, reduciendo su vida a {bicho.vida}")
+            mensaje = "¡Has atacado a un bicho!"
+            mensaje += f" La vida del bicho se ha reducido a {bicho.vida}"
+        else:
+            mensaje = " ¡Has matado al bicho!"
+        self.notifyObservers({"commando": "resultadoAccion", "mensaje": mensaje})
+        self.step()
+        return bicho.vida
+        
     
     def notifyObservers(self, mensaje):
         for observer in self.observers:
@@ -934,6 +1146,20 @@ class Juego:
         if self.personaje.ubicadoEn == bicho.ubicadoEn:
             return self.personaje
         return False
+    def jugadorBuscarObjetivo(self):
+        if self.console:
+            listaBichos = []
+            for bicho in self.bichos:
+                if self.personaje.ubicadoEn == bicho.ubicadoEn:
+                    listaBichos.append(bicho)
+            return listaBichos
+        listaBichos = []
+        indice = 0
+        for bicho in self.bichos:
+            indice += 1
+            if self.personaje.ubicadoEn == bicho.ubicadoEn:
+                listaBichos.append(indice)
+        return listaBichos
     def crearPrototipoLaberinto(self):
         self.laberintoPrototipo = copy.deepcopy(self.laberinto)
     
@@ -987,20 +1213,27 @@ class Bomba(Decorator):
         if self.activada:
             print(f"BOOM! Un {unEnte} ha activado una bomba y ha perdido 5 puntos de vida")
             unEnte.vida -= 5
-        self.elemento.entrar(unEnte)
+            self.activada = False
+            return "BOOM! Has perdido 5 puntos de vida"
+        return self.elemento.entrar(unEnte)
     def __str__(self):
-        return self.elemento.__str__() + " con una bomba"
+        return self.elemento.__str__()
+        
     def aceptar(self, visitor):
         visitor.visitarBomba(self)
 class Hongo(Decorator):
     def __init__(self, elemento):
         super().__init__(elemento)
+        self.usado = False
     def entrar(self, unEnte):
-        print(f"Un {unEnte} ha encontrado un hongo y ha ganado 5 puntos de vida")
-        unEnte.vida += 5
-        self.elemento.entrar(unEnte)
+        if not self.usado:
+            print(f"Un {unEnte} ha encontrado un hongo y ha ganado 5 puntos de vida")
+            unEnte.vida += 5
+            self.usado = True
+            return "Has encontrado un hongo y has ganado 5 puntos de vida"
+        return self.elemento.entrar(unEnte)
     def __str__(self):
-        return self.elemento.__str__() + " con un hongo"
+        return self.elemento.__str__()
     def aceptar(self, visitor):
         visitor.visitarHongo(self)
 
@@ -1012,11 +1245,12 @@ class Boton(Decorator):
         print(f"Un {unEnte} ha presionado un botón y se han abierto todas las puertas del laberinto")
         visitor = visitors.visitorAbrirPuertas()
         self.laberinto.aceptar(visitor)
-        self.elemento.entrar(unEnte)
+        return "Se han abierto todas las puertas"
     def __str__(self):
         return self.elemento.__str__() + " con un botón"
     def aceptar(self, visitor):
         visitor.visitarBoton(self)
+
 
 def load():
     cargarLogging()
@@ -1026,10 +1260,10 @@ def load():
     director.construirLaberinto()
     return director
 
-
-#cargarLogging()
-#director = Director()
-#director.cargarConf("src\laberintos\Lab2Hab.json")
-#director.iniBuilder()
-#director.construirLaberinto()
-#director.builder.juego.jugarConsola()
+if consola:
+    cargarLogging()
+    director = Director()
+    director.cargarConf("src\laberintos\Lab2Hab.json")
+    director.iniBuilder()
+    director.construirLaberinto()
+    director.builder.juego.jugarConsola()

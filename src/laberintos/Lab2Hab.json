@@ -5,7 +5,7 @@
                                              ]
                },
              {"tipo":"habitacion", "id":2,"hijos":[
-                                                {"tipo":"armario","posicion":"Sur"},
+                                                {"tipo":"armario","posicion":"Sur","objetos":[{"tipo":"Espada","posicion":"Sur"}]},
                                                 {"tipo":"hongo","posicion":"Oeste"}
              ]},
              {"tipo":"habitacion", "id":3,"hijos":[]},

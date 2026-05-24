@@ -17,6 +17,8 @@ class Visitor():
         pass
     def visitarHongo(self, hongo):
         pass
+    def visitarEspada(self, espada):
+        pass
 
 class visitorAbrirPuertas(Visitor):
     def visitarPuerta(self, puerta):
